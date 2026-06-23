@@ -5,6 +5,8 @@
 
 workflows
 operations
+physical-testbed
+virtual-testbed
 tase2-on-the-wire
 configuration
 results

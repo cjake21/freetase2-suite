@@ -12,12 +12,16 @@ docker build -t tase2-plc-gateway .
 ## Run
 
 ```bash
-docker run --rm -p 8800:8800 tase2-plc-gateway          # stub demo, HMI on :8800
-docker run --rm -p 8800:8800 tase2-plc-gateway \
-    bash scripts/57_run_dnp3_demo.sh                    # DNP3 demo instead
+# the universal multi-protocol demo (Modbus + DNP3), HMI on :8800
+docker run --rm -p 8800:8800 freetase2-suite \
+    bash -lc "MODBUS_SIM=1 DNP3_SIM=1 scripts/55_run_scada.sh"
+
+# or the control console on :8080 to choose and run a deployment
+docker run --rm -p 8080:8080 -p 8800:8800 freetase2-suite \
+    bash -lc "CONSOLE_HOST=0.0.0.0 python3 suite/console.py"
 ```
 
-Open `http://127.0.0.1:8800`.
+Open `http://127.0.0.1:8800` (HMI) or `http://127.0.0.1:8080` (console).
 
 ```{note}
 Inside the container the HMI binds to `0.0.0.0` (set by `HTTP_HOST`) so the

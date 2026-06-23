@@ -10,9 +10,9 @@
 ## Run a no-hardware demo
 
 ```bash
-./scripts/55_run_scada.sh        # Modbus / stub
-./scripts/57_run_dnp3_demo.sh    # DNP3 with bundled outstation
-./scripts/50_run_hmi.sh          # HMI over simulated values, no gateway
+python3 suite/console.py                # control console; start field-demo (Modbus + DNP3)
+python3 suite/tase2ctl.py run field-demo # same, from the command line
+./scripts/50_run_hmi.sh                  # HMI over simulated values, no gateway
 ```
 
 ## Run as a hardened node

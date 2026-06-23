@@ -40,7 +40,7 @@ Prefer the command line:
 
 ```bash
 python3 suite/tase2ctl.py list
-python3 suite/tase2ctl.py run modbus-stub      # or sim-demo, dnp3-demo, hardened
+python3 suite/tase2ctl.py run field-demo       # or sim-demo, field-hardened
 ```
 
 ## The control plane

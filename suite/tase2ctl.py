@@ -35,11 +35,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
 PROFILES = os.path.join(HERE, "profiles.json")
 
-# operating mode -> the run script that implements it
+# operating mode -> the run script that implements it. Ingestion uses one unified
+# launcher for any protocol mix; bench simulators are enabled via env from the
+# deployment's "sims" list.
 LAUNCHERS = {
     "simulation": "scripts/50_run_hmi.sh",
     "ingestion": "scripts/55_run_scada.sh",
-    "ingestion-dnp3-sim": "scripts/57_run_dnp3_demo.sh",
 }
 
 
@@ -67,16 +68,17 @@ def build_launch(name):
     if d.get("tags"):
         env["TAGS"] = os.path.join(ROOT, d["tags"])
 
-    if mode == "simulation":
-        script = LAUNCHERS["simulation"]
-    elif mode == "ingestion" and d.get("dnp3_sim"):
-        script = LAUNCHERS["ingestion-dnp3-sim"]
-    elif mode == "ingestion":
-        script = LAUNCHERS["ingestion"]
-    else:
-        sys.exit("deployment %r has unknown mode %r" % (name, mode))
+    # bench field-device simulators for the demo (no hardware): a deployment lists
+    # which to start under "sims" (e.g. ["modbus","dnp3"]).
+    sims = d.get("sims", [])
+    if "modbus" in sims:
+        env["MODBUS_SIM"] = "1"
+    if "dnp3" in sims:
+        env["DNP3_SIM"] = "1"
 
-    return ["bash", os.path.join(ROOT, script)], env
+    if mode not in LAUNCHERS:
+        sys.exit("deployment %r has unknown mode %r" % (name, mode))
+    return ["bash", os.path.join(ROOT, LAUNCHERS[mode])], env
 
 
 def cmd_list(_args):

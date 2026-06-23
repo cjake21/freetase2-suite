@@ -87,6 +87,8 @@ class Config:
                     # <name>_ctl
                     "control": ctl.get("kind") if ctl else None,
                     "control_mode": ctl.get("mode", "direct") if ctl else None,
+                    # optional operator alarm limits (engineering units)
+                    "hi": p.get("hi"), "lo": p.get("lo"),
                 }
                 self.points.append(pt)
                 self.point_index[pt["name"]] = pt
@@ -309,6 +311,7 @@ class Hmi:
                     "ts": self.ts[name], "age": age,
                     "control": p["control"], "mode": p["control_mode"],
                     "armed": arm_left if arm_left > 0 else 0,
+                    "hi": p["hi"], "lo": p["lo"],
                 })
             out.append({
                 "id": st["id"], "name": st["name"],

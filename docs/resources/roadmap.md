@@ -10,6 +10,10 @@
 - Interoperability gate against an independent MMS client.
 - Parser hardening and a fuzz suite.
 - Security profiles: insecure and hardened (mutual TLS plus command allowlist).
+- Universal multi-protocol ingestion: one gateway ingests Modbus and DNP3 at the
+  same time into one ICCP point model, with bench simulators for both.
+- Operations Launcher (control console) and an industrial HMI/SCADA UI, with the
+  documentation served from the console.
 
 ## In progress
 

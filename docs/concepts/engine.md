@@ -39,8 +39,27 @@ Because the command lives in `<point>_ctl` and the read-back lives in the
 monitoring point, the gateway never overwrites a command with field data or vice
 versa. Control takes a few poll cycles end to end.
 
+## Synthetic value source: `simulateValues()`
+
+The server has a built-in synthetic source, `simulateValues()`, that runs once per
+second. For every point it rewrites the value from a synthetic function (a sine for
+real points, a toggle for state points), under the model lock, in the same place
+field data would otherwise land. The reporting that follows is real: genuine Block
+2 InformationReport PDUs go out on the wire. Only the values are synthetic.
+
+- **Simulation mode** (`sim-demo`) runs with `simulateValues()` on and no
+  ingestion, so the node connects to nothing. It is the virtual mode for training,
+  capture, and parser/IDS testing.
+- **Ingestion mode** runs the server with `-n`, which disables `simulateValues()`.
+  Points then change only from the gateway's writes (real field values), and the
+  injection hold (`-o`) pins each written value between polls.
+
+See {doc}`../guides/tase2-on-the-wire` for how this looks on the wire and how the
+bundled simulators provide virtual devices that still produce real protocol.
+
 ## Single-threaded server
 
 The libIEC61850 build here is single threaded. The server drives the MMS stack and
-its periodic work (simulation if enabled, reporting) from one loop, which keeps the
-model lock simple and the behaviour deterministic for capture and testing.
+its periodic work (the synthetic source when enabled, and reporting) from one loop,
+which keeps the model lock simple and the behaviour deterministic for capture and
+testing.

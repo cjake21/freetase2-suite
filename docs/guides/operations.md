@@ -1,48 +1,177 @@
-# Running operations
+# Operating the launcher and the HMI
 
-"Operations" here means polling jobs and operator controls, the two things the node
-does continuously.
+This guide walks an operator through the two layers of the tool: the Operations
+Launcher (the control console, where you choose and run a deployment) and the
+ICCP/SCADA HMI (the live operational screen, where you monitor points and issue
+controls). It also points to {doc}`tase2-on-the-wire`, which explains how each
+action becomes real TASE.2 traffic.
 
-## Polling
-
-The gateway polls every tag every `POLL_SEC` seconds. Each value is written up with
-quality and a time tag. There is nothing to start per poll; the gateway runs the
-loop until stopped.
-
-## Issuing a control
-
-From the HMI: on a controllable point, use the operate buttons (discrete) or the
-setpoint box (setpoint). For a select-before-operate point, press SELECT first, then
-operate within the countdown.
-
-From the API:
-
-```bash
-# direct or armed operate
-curl -s -XPOST http://127.0.0.1:8800/api/control \
-  -d '{"action":"command","item":"plc4_stat","value":1}'
-
-# select-before-operate sequence
-curl -s -XPOST http://127.0.0.1:8800/api/control -d '{"action":"select","item":"plc1_brk"}'
-curl -s -XPOST http://127.0.0.1:8800/api/control -d '{"action":"command","item":"plc1_brk","value":1}'
+```{contents}
+:local:
+:depth: 2
 ```
 
-See {doc}`../api/rest` for all actions.
+## Two layers: launcher state vs runtime state
 
-## Select-before-operate behaviour
+There are two independent states, and the console keeps them visually separate:
 
-- A select arms the point for a timeout (about 28 seconds in the HMI, 30 at the
-  server).
-- Only the selecting connection may operate. An operate without a current selection
-  is rejected by both the bridge and the server.
-- A cancel or a successful operate clears the selection.
+- **Launcher state** is the console itself. While the console process is up, the
+  top bar shows `LAUNCHER: ONLINE`. The launcher does not move data; it starts and
+  stops deployments.
+- **Runtime state** is the deployment process group (server, gateway, bridge, and
+  any simulators). The top bar shows `RUNTIME: RUNNING` or `STOPPED`. This is the
+  thing that actually publishes TASE.2 and talks to devices.
 
-## Command allowlist (hardened profile)
+A deployment can be stopped while the launcher stays online. That separation is
+deliberate: you always have a control surface, even when nothing is running.
 
-In `hardened`, only allowlisted peers may command or inject. The local bridge and
-gateway are on the loopback allowlist. An external ICCP peer can read and subscribe
-but its writes and operates are denied.
+## The Operations Launcher
 
-## Stopping
+### Start the console
 
-Press `Ctrl+C` in the launcher. It stops the server, gateway, bridge, and agents.
+```bash
+python3 suite/console.py        # http://127.0.0.1:8080
+```
+
+### Read the top bar
+
+| Field | Meaning |
+|-------|---------|
+| LAUNCHER | the console process (ONLINE while it runs) |
+| RUNTIME | the deployment process state (RUNNING green / STOPPED gray); RUNNING is shown amber when the active profile is insecure |
+| ACTIVE DEPLOYMENT | which deployment is running |
+| PROTOCOL / MODE | southbound protocol and operating mode of the running deployment |
+| SECURITY PROFILE | insecure (amber) or hardened (green) |
+| SYSTEM TIME | local clock |
+| STOP ALL | terminates the running deployment (enabled only while one runs) |
+
+### Select a deployment and read the pre-launch checks
+
+The left **Deployment Control** list is your control station. Each row shows the
+deployment name, protocol, mode, security profile (color coded), config file, and
+port bindings, with Start / Stop / Logs.
+
+Click a row to load the right **detail panel**, which shows before you launch:
+
+- the launch command and the script it runs,
+- the config path, tag database, and port bindings,
+- the last run time,
+- **pre-launch health checks**: tools built, point model present, tag database
+  present, configuration valid, TLS certificates present (hardened), docs built. A
+  green square means ready; red means fix it first.
+- **warnings before launch**: for example that an insecure profile has an open
+  command path, or that ingestion mode reaches real devices.
+
+```{warning}
+Read the warnings. In ingestion mode the gateway will connect to whatever the tag
+database points at. On a real network, confirm segmentation and the security
+profile before pressing Start.
+```
+
+### Start and stop
+
+Press **Start** on a deployment row. The console launches the deployment process
+group and the top bar flips to RUNNING. Only one deployment runs at a time
+(deployments share ports by default), so Start is disabled on the others while one
+is running.
+
+Press **Stop** on the running row, or **STOP ALL** in the top bar, to terminate the
+whole process group (server, gateway, bridge, simulators).
+
+### Watch the deployment log
+
+The bottom **Deployment Log** panel tails the live output of the running
+deployment. Use the **System / Runtime / Error** filters:
+
+- **System**: launcher and startup lines (`[scada] ...`).
+- **Runtime**: server, gateway, and bridge lines (`[ingest] ...`, `[tase2] ...`).
+- **Error**: lines matching error, fail, denied, reject.
+
+This is where you confirm the ICCP association came online, that the gateway is
+polling, and that commands were pushed to devices.
+
+### Open the SCADA HMI and the documentation
+
+When a deployment is running, the **SCADA HMI** link in the top bar opens that
+deployment's HMI. The **DOCS** link opens this documentation.
+
+## The SCADA HMI
+
+Open it from the launcher, or directly at `http://127.0.0.1:8800`.
+
+### Status strip
+
+The top strip is your at-a-glance operational summary:
+
+| Field | Meaning |
+|-------|---------|
+| LINK | ICCP link: NORMAL (all stations online), DEGRADED (some), NO DATA, or OFFLINE |
+| STATIONS | online / total |
+| SCAN | RUN when reports are flowing, else HOLD |
+| CRIT / WARN | active alarm counts by severity |
+| LAST RPT | time of the last Block 2 report received |
+| UTC | clock |
+
+### Points table
+
+The left table is the live point list across all stations. Columns: station,
+point, description, value, quality, control type, and age. The table is sortable
+(click a header) and filterable (search box, station selector, quality filter,
+controllable-only).
+
+Operational state is high contrast:
+
+- A row carries a left **severity accent**: red for critical (NOT VALID or over an
+  alarm limit), amber for warning, gray for stale/no-data.
+- The **value** is colored by state, and the **quality** column shows GOOD,
+  SUSPECT, HELD, NOT VALID, or STALE in the matching color.
+- The **age** is how long since the field time tag; a growing age on a point that
+  should be live is a sign of trouble.
+
+### Point detail and evidence panel
+
+Click a row to open the right **detail panel**. It is the evidence view for one
+point: station and comms state, type, value, quality, the field time tag and age,
+and the control configuration. For a controllable point it also shows the operator
+controls.
+
+### Issuing controls
+
+Controls appear in the detail panel only for controllable points. There are three
+forms:
+
+1. **Direct operate** (discrete, `mode: direct`): the state buttons (for example
+   OPEN and CLOSE) operate immediately.
+2. **Setpoint** (real, `kind: setpoint`): enter a value and press SEND. The value
+   is in engineering units; the gateway converts it to raw device units on the way
+   down.
+3. **Select-before-operate** (`mode: sbo`): press **SELECT** first. The point arms
+   for a timeout (the panel shows ARMED with a countdown and a CANCEL button), then
+   the operate buttons appear. The server enforces this: an operate without a
+   current selection from the same client is rejected.
+
+After you operate, the command travels to the device and the read-back returns over
+ICCP, so the point's value updates within a few seconds. See
+{doc}`tase2-on-the-wire` for exactly what happens on the wire.
+
+### Alarms
+
+The **active alarms** panel is the dominant attention zone. Alarms are derived
+live: station comms lost, a point NOT VALID, or a value over its high or under its
+low limit. Each row shows severity (CRIT or WARN), an id, the condition, the value,
+and the ack state. ACK ALL acknowledges the current set; an alarm re-arms if it
+clears and recurs.
+
+### Event log
+
+The bottom **event log** is a timestamped timeline with severity tags, filterable
+by type: ALM (alarms), CMD (operator commands), RX (reports received), SYS (station
+comms changes). It is the audit trail of what happened and when.
+
+## Where to go next
+
+- {doc}`tase2-on-the-wire`: how monitoring and control become real TASE.2 traffic,
+  and how the simulation mode keeps everything virtual.
+- {doc}`configuration`: defining stations, points, controls, limits, and the tag
+  database.
+- {doc}`../api/rest`: driving the same actions over the HTTP API.

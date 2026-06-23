@@ -10,8 +10,7 @@ PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT"
 
 echo "== validate configs =="
-python3 scripts/validate_config.py config/scada.json ingest/tags.scada-demo.json
-python3 scripts/validate_config.py config/scada.dnp3-demo.json ingest/tags.dnp3-demo.json
+python3 scripts/validate_config.py config/scada.json ingest/tags.demo.json
 
 echo "== python test suite (unit + interop) =="
 python3 -m unittest discover -s tests
@@ -20,7 +19,8 @@ echo "== headless smoke: SCADA stack comes up and serves state =="
 if [[ -x src/tase2_server && -x src/tase2_hmi_agent ]]; then
   HTTP_PORT="${HTTP_PORT:-8899}"
   TASE2_PORT="${TASE2_PORT:-10599}"
-  HTTP_PORT="$HTTP_PORT" TASE2_PORT="$TASE2_PORT" bash scripts/55_run_scada.sh >/tmp/selftest_scada.log 2>&1 &
+  HTTP_PORT="$HTTP_PORT" TASE2_PORT="$TASE2_PORT" MODBUS_SIM=1 DNP3_SIM=1 \
+    bash scripts/55_run_scada.sh >/tmp/selftest_scada.log 2>&1 &
   SMOKE_PID=$!
   ok=0
   for _ in $(seq 1 20); do

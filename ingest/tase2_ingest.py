@@ -607,12 +607,12 @@ class Gateway:
                     log("[ingest] %s recovered" % tag["name"])
                     tag["bad"] = False
             except Exception as e:  # noqa: BLE001 - one bad tag must not stop the rest
-                # Mark the point NOT-VALID (its quality propagates to the HMI) and
-                # hold the last good value and time tag, so a dead device shows as
-                # bad quality rather than silently freezing at a stale value.
-                if tag.get("last_value") is not None:
-                    self.writer.write_q(tag["point"], tag["last_value"], tag["is_float"],
-                                        Q_NOTVALID, tag.get("last_ts", int(time.time())))
+                # Mark the point NOT-VALID (its quality propagates to the HMI),
+                # holding the last good value (or 0 if never read) and time tag, so
+                # a dead device shows as bad quality instead of a stale value.
+                self.writer.write_q(tag["point"], tag.get("last_value", 0) or 0,
+                                    tag["is_float"], Q_NOTVALID,
+                                    tag.get("last_ts", int(time.time())))
                 if not tag["bad"]:
                     log("[ingest] %s read failed: %s" % (tag["name"], e))
                     tag["bad"] = True
@@ -637,8 +637,13 @@ class Gateway:
                 ctl["primed"] = True
                 return
             if cmd != ctl["last"]:
-                ctl["target"].write_control(ctl["spec"], cmd)
-                log("[ingest] command %s = %s -> %s" % (ctl["object"], cmd, tag["point"]))
+                # Operator commands are in engineering units; convert back to raw
+                # device units (inverse of value = raw*scale + offset) before
+                # writing down, so a scaled setpoint round-trips on read-back.
+                scale = tag["scale"] or 1.0
+                raw = (cmd - tag["offset"]) / scale
+                ctl["target"].write_control(ctl["spec"], raw)
+                log("[ingest] command %s = %s -> %s (raw %s)" % (ctl["object"], cmd, tag["point"], raw))
                 ctl["last"] = cmd
         except Exception as e:  # noqa: BLE001
             log("[ingest] control %s failed: %s" % (ctl["object"], e))

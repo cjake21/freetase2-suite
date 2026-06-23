@@ -1,8 +1,5 @@
 "use strict";
 
-// Magnitude above this on a real point raises a HIGH alarm (CRIT).
-const HI_LIMIT = 100;
-
 let state = null;
 let selected = null;            // selected point name
 let sortKey = "station", sortDir = 1;
@@ -30,10 +27,14 @@ function points(){
 }
 
 // severity model
+function overLimit(pt){
+  if(pt.type!=="real"||pt.value==null) return false;
+  return (pt.hi!=null&&pt.value>pt.hi)||(pt.lo!=null&&pt.value<pt.lo);
+}
 function sev(pt){
   if(pt.quality==="NOTVALID") return "crit";
   if(!pt.fresh) return "off";
-  if(pt.type==="real" && pt.value!=null && Math.abs(pt.value)>HI_LIMIT) return "crit";
+  if(overLimit(pt)) return "crit";
   if(pt.quality==="SUSPECT"||pt.quality==="HELD") return "warn";
   return "ok";
 }
@@ -168,7 +169,8 @@ function buildAlarms(stations,pts){
   stations.forEach(st=>{ if(!st.online) a.push({sev:"warn",id:"COM-"+st.id,cond:"STATION COMMS LOST",val:st.name}); });
   pts.forEach(p=>{
     if(p.quality==="NOTVALID") a.push({sev:"warn",id:"INV-"+p.name,cond:"POINT NOT VALID",val:p.label});
-    if(p.type==="real"&&p.fresh&&p.value!=null&&Math.abs(p.value)>HI_LIMIT) a.push({sev:"crit",id:"HI-"+p.name,cond:"HIGH "+p.label,val:fmt(p.value,1)+" "+p.unit});
+    if(p.fresh&&p.hi!=null&&p.value!=null&&p.value>p.hi) a.push({sev:"crit",id:"HI-"+p.name,cond:"HIGH "+p.label,val:fmt(p.value,1)+" "+p.unit+" > "+p.hi});
+    if(p.fresh&&p.lo!=null&&p.value!=null&&p.value<p.lo) a.push({sev:"crit",id:"LO-"+p.name,cond:"LOW "+p.label,val:fmt(p.value,1)+" "+p.unit+" < "+p.lo});
   });
   return a;
 }

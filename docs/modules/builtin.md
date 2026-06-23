@@ -20,6 +20,9 @@ A Modbus TCP master over plain sockets, dependency free.
 - Writes commands as a coil (function code 5), a single register (6), or a float
   across two registers (16).
 - One connection is shared per `host:port:unit`.
+- A bench Modbus slave simulator is provided (`ingest/modbus_outstation_sim.py`),
+  started with `MODBUS_SIM=1`, so the demo shows real Modbus traffic with no
+  hardware.
 
 ## `dnp3`
 
@@ -29,7 +32,16 @@ A DNP3 (IEEE 1815) master over TCP, dependency free (`ingest/dnp3.py`).
 - Operates a control relay output block (group 12 CROB) by select-before-operate or
   direct operate.
 - One association is shared per `host:port:outstation`.
-- A bench outstation simulator is provided (`ingest/dnp3_outstation_sim.py`).
+- A bench outstation simulator is provided (`ingest/dnp3_outstation_sim.py`), started
+  with `DNP3_SIM=1`.
+
+## Mixing protocols
+
+Drivers are chosen per tag, so one tag database and one gateway can ingest Modbus
+and DNP3 at the same time into a single ICCP point model. The `field-demo`
+deployment and `ingest/tags.demo.json` do exactly this. To go from the bench to a
+live testbed, point the device hosts at your real PLCs and RTUs and turn the
+simulators off.
 
 ## Robustness
 

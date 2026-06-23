@@ -38,8 +38,9 @@ runs a short headless smoke of the SCADA stack. Expected final line:
 ## Run
 
 ```bash
-./scripts/55_run_scada.sh       # Modbus / stub demo, HMI on http://127.0.0.1:8800
-./scripts/57_run_dnp3_demo.sh   # DNP3 demo with the bundled outstation simulator
+python3 suite/console.py        # control console on :8080; start the field-demo
+./scripts/55_run_scada.sh       # or run the stack directly; HMI on :8800
 ```
 
-See {doc}`../getting-started/first-run`.
+`field-demo` ingests Modbus and DNP3 together using the bundled simulators. See
+{doc}`../getting-started/first-run`.

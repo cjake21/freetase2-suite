@@ -11,8 +11,14 @@ src/                      C tools (built against libIEC61850)
 ingest/                   southbound ingestion (Python, stdlib only)
   tase2_ingest.py         the gateway: drivers, poll loop, control loop
   dnp3.py                 DNP3 master library
-  dnp3_outstation_sim.py  bench DNP3 outstation
-  tags*.json              tag databases (field mapping)
+  dnp3_outstation_sim.py  bench DNP3 outstation simulator
+  modbus_outstation_sim.py bench Modbus slave simulator
+  tags*.json              tag databases (field mapping; tags.demo.json is multi-protocol)
+
+suite/                    control plane (the unified tool)
+  tase2ctl.py             CLI: list/validate/run named deployments
+  console.py              web control console (launcher) + static/console.html
+  profiles.json           named deployments (mode, protocol, profile, config, sims)
 
 hmi/
   bridge.py               HMI bridge + HTTP/SSE/control API
@@ -20,12 +26,10 @@ hmi/
 
 config/
   scada.json              point model + station layout (source of truth)
-  scada.dnp3-demo.json    DNP3 demo point model
 
 scripts/
   10_build.sh             build libIEC61850 (pinned) + tools
-  55_run_scada.sh         full stack (Modbus/stub)
-  57_run_dnp3_demo.sh     full stack over DNP3 with the simulator
+  55_run_scada.sh         full ingestion stack (any protocol; starts sims via MODBUS_SIM/DNP3_SIM)
   50_run_hmi.sh           HMI over simulated values
   gen_server_points.py    scada.json -> server point list
   gen_certs.sh            lab TLS certificates

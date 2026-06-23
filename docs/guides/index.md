@@ -4,8 +4,9 @@
 :maxdepth: 1
 
 workflows
-configuration
 operations
+tase2-on-the-wire
+configuration
 results
 exporting
 ```

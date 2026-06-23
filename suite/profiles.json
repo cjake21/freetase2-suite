@@ -1,9 +1,9 @@
 {
-  "_comment": "Named deployments for the unified tool. Each one selects an operating mode (simulation vs ingestion), a southbound protocol, a security profile (insecure vs hardened), a point model, and (for ingestion) a tag database. The control console and tase2ctl launch these by name. Add your own deployment here for a real testbed. northbound is always TASE.2/ICCP over MMS.",
+  "_comment": "Named deployments. Each selects an operating mode (simulation vs ingestion), a security profile, the point model, the tag database, and which bench simulators to start (sims). The universal 'field-demo' ingests Modbus and DNP3 at once into one ICCP point model; point its tag database at real PLCs and RTUs and turn the sims off for a real testbed. northbound is always TASE.2/ICCP over MMS.",
 
   "deployments": {
     "sim-demo": {
-      "description": "Simulation mode. Synthetic values from the server, connects to nothing. For training, capture, and parser/IDS testing.",
+      "description": "Simulation mode. The server drives every point with synthetic values (simulateValues); connects to nothing. For training, capture, and parser/IDS testing.",
       "mode": "simulation",
       "protocol": "ICCP/MMS",
       "security": "insecure",
@@ -12,36 +12,26 @@
       "tase2_port": 10502
     },
 
-    "modbus-stub": {
-      "description": "Ingestion mode with stub Modbus devices. Full pipeline with no hardware; station plc3 is offline on purpose to show a degraded state.",
+    "field-demo": {
+      "description": "Universal ingestion: one gateway ingests Modbus (plc1/plc2) and DNP3 (rtu1) at the same time, with plc3 unreachable to show a degraded station. Uses the bundled Modbus and DNP3 simulators so it runs with no hardware.",
       "mode": "ingestion",
-      "protocol": "Modbus TCP",
+      "protocol": "Modbus + DNP3",
       "security": "insecure",
       "config": "config/scada.json",
-      "tags": "ingest/tags.scada-demo.json",
+      "tags": "ingest/tags.demo.json",
+      "sims": ["modbus", "dnp3"],
       "http_port": 8800,
       "tase2_port": 10502
     },
 
-    "dnp3-demo": {
-      "description": "Ingestion mode over DNP3 with the bundled outstation simulator. No hardware needed.",
+    "field-hardened": {
+      "description": "The universal multi-protocol ingestion deployment, hardened: mutual TLS (Secure ICCP) plus a loopback command allowlist. Run scripts/gen_certs.sh first.",
       "mode": "ingestion",
-      "protocol": "DNP3",
-      "security": "insecure",
-      "config": "config/scada.dnp3-demo.json",
-      "tags": "ingest/tags.dnp3-demo.json",
-      "dnp3_sim": true,
-      "http_port": 8800,
-      "tase2_port": 10502
-    },
-
-    "hardened": {
-      "description": "Ingestion mode, hardened. Mutual TLS (Secure ICCP) plus a loopback command allowlist. Run scripts/gen_certs.sh first.",
-      "mode": "ingestion",
-      "protocol": "Modbus TCP",
+      "protocol": "Modbus + DNP3",
       "security": "hardened",
       "config": "config/scada.json",
-      "tags": "ingest/tags.scada-demo.json",
+      "tags": "ingest/tags.demo.json",
+      "sims": ["modbus", "dnp3"],
       "http_port": 8800,
       "tase2_port": 10502
     }

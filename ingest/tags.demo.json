@@ -1,0 +1,32 @@
+{
+  "_comment": "Universal multi-protocol demo tag database. ONE gateway ingests Modbus AND DNP3 at the same time, into the one ICCP point model in config/scada.json. plc1/plc2 read Modbus from the bundled Modbus slave simulator (127.0.0.1:1502); rtu1 reads DNP3 from the bundled DNP3 outstation simulator (127.0.0.1:20000); plc3 points at an unreachable device to show a degraded/NOT-VALID station. To go from this bench demo to a real environment, change the device host/port/unit (and registers/indexes) to your real PLCs and RTUs; nothing else changes. Controls are written back down to the device, and read back up, so the HMI reflects the commanded state.",
+
+  "devices": {
+    "mb":      { "driver": "modbus", "host": "127.0.0.1", "port": 1502, "unit": 1 },
+    "mb_down": { "driver": "modbus", "host": "127.0.0.1", "port": 9,    "unit": 1 },
+    "rtu":     { "driver": "dnp3",   "host": "127.0.0.1", "port": 20000, "outstation": 10, "master": 1 }
+  },
+
+  "tags": [
+    { "point": "plc1_mw",  "type": "float", "device": "mb", "kind": "input",   "register": 100, "decode": "int16", "scale": 0.1 },
+    { "point": "plc1_kv",  "type": "float", "device": "mb", "kind": "input",   "register": 102, "decode": "int16", "scale": 0.1 },
+    { "point": "plc1_avr", "type": "float", "device": "mb", "kind": "holding", "register": 0,   "decode": "int16", "scale": 0.01,
+      "control": { "kind": "holding", "register": 0 } },
+    { "point": "plc1_brk", "type": "int",   "device": "mb", "kind": "holding", "register": 2,   "decode": "uint16",
+      "control": { "kind": "holding", "register": 2 } },
+
+    { "point": "plc2_mw",  "type": "float", "device": "mb", "kind": "input",   "register": 104, "decode": "int16", "scale": 0.1 },
+    { "point": "plc2_kv",  "type": "float", "device": "mb", "kind": "input",   "register": 106, "decode": "int16", "scale": 0.1 },
+    { "point": "plc2_brk", "type": "int",   "device": "mb", "kind": "holding", "register": 4,   "decode": "uint16",
+      "control": { "kind": "holding", "register": 4 } },
+
+    { "point": "plc3_mw",   "type": "float", "device": "mb_down", "kind": "input",   "register": 100, "decode": "int16", "scale": 0.1 },
+    { "point": "plc3_temp", "type": "float", "device": "mb_down", "kind": "input",   "register": 102, "decode": "int16", "scale": 0.1 },
+    { "point": "plc3_stat", "type": "int",   "device": "mb_down", "kind": "holding", "register": 6,   "decode": "uint16" },
+
+    { "point": "rtu1_mw",  "type": "float", "device": "rtu", "group": 30, "variation": 5, "index": 0 },
+    { "point": "rtu1_kv",  "type": "float", "device": "rtu", "group": 30, "variation": 5, "index": 1 },
+    { "point": "rtu1_brk", "type": "int",   "device": "rtu", "group": 1,  "variation": 2, "index": 0,
+      "control": { "index": 0, "sbo": true } }
+  ]
+}

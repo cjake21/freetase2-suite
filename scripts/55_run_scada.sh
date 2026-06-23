@@ -13,9 +13,10 @@ set -Eeuo pipefail
 # and (4) starts the HMI bridge, which subscribes over ICCP and renders one
 # station card per PLC. Then open http://127.0.0.1:8800.
 #
-# By default it uses ingest/tags.scada-demo.json (all stub drivers, no PLC
-# needed: most stations jitter and read ONLINE, plc3 is 'down' and reads
-# OFFLINE). Point TAGS at your own modbus tag database for real devices. No sudo.
+# By default it uses ingest/tags.demo.json, the universal multi-protocol demo
+# (Modbus + DNP3). Set MODBUS_SIM=1 and/or DNP3_SIM=1 to start the bundled bench
+# simulators (the control plane does this from a deployment's "sims" list). Point
+# TAGS at your own tag database, with the sims off, for a real testbed. No sudo.
 
 PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TASE2_HOST="${TASE2_HOST:-127.0.0.1}"
@@ -25,7 +26,7 @@ INJECT_HOLD="${INJECT_HOLD:-30}"
 INTEGRITY="${INTEGRITY:-10}"
 POLL_SEC="${POLL_SEC:-1}"
 CONFIG="${SCADA_CONFIG:-$PROJECT/config/scada.json}"
-TAGS="${TAGS:-$PROJECT/ingest/tags.scada-demo.json}"
+TAGS="${TAGS:-$PROJECT/ingest/tags.demo.json}"
 
 SRV="$PROJECT/src/tase2_server"
 AGENT="$PROJECT/src/tase2_hmi_agent"
@@ -45,6 +46,20 @@ echo "[scada] config $CONFIG -> $(wc -l < "$POINTS") points, domain $DOMAIN"
 PIDS=()
 cleanup() { for p in "${PIDS[@]:-}"; do kill "$p" 2>/dev/null || true; done; rm -f "$POINTS"; }
 trap cleanup EXIT INT TERM
+
+# Optional bench field-device simulators, so the demo shows real Modbus and/or
+# DNP3 traffic with no hardware. Set MODBUS_SIM=1 / DNP3_SIM=1 (the control plane
+# does this from a deployment's "sims" list). For a real testbed leave them off
+# and point the tag database at your PLCs and RTUs.
+if [[ "${MODBUS_SIM:-0}" == "1" ]]; then
+  echo "[scada] starting Modbus slave simulator on :${MODBUS_SIM_PORT:-1502}"
+  python3 "$PROJECT/ingest/modbus_outstation_sim.py" --port "${MODBUS_SIM_PORT:-1502}" & PIDS+=("$!")
+fi
+if [[ "${DNP3_SIM:-0}" == "1" ]]; then
+  echo "[scada] starting DNP3 outstation simulator on :${DNP3_SIM_PORT:-20000}"
+  python3 "$PROJECT/ingest/dnp3_outstation_sim.py" --port "${DNP3_SIM_PORT:-20000}" & PIDS+=("$!")
+fi
+[[ "${MODBUS_SIM:-0}" == "1" || "${DNP3_SIM:-0}" == "1" ]] && sleep 1
 
 # Security profile. PROFILE=insecure (default) is the range/attack-demo target:
 # plaintext, any peer may command. PROFILE=hardened is mutual-TLS (Secure ICCP)

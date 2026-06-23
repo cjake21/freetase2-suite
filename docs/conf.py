@@ -40,7 +40,7 @@ source_suffix = {
 # Legacy capture/proof files live alongside these docs but are not part of the
 # structured portal; keep them out of the build so there are no stray pages.
 exclude_patterns = [
-    "_build", "Thumbs.db", ".DS_Store",
+    "_build", ".venv", "Thumbs.db", ".DS_Store",
     "capture_decode.txt", "proof_client.txt", "proof_probe.txt",
     "lab_notes.md", "lab_device_runbook.md", "README.md",
 ]

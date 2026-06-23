@@ -146,7 +146,7 @@ def precheck(name):
         certs = all(os.path.isfile(os.path.join(R, "certs", f)) for f in
                     ("ca.crt", "server.crt", "server.key", "client.crt", "client.key"))
         add("TLS certificates present", certs, "certs/  (run scripts/gen_certs.sh)")
-    add("documentation built", os.path.isdir(DOCS_HTML), "make -C docs html")
+    add("documentation built", os.path.isdir(DOCS_HTML), "./scripts/65_build_docs.sh")
 
     warnings = []
     if d.get("security") == "insecure":

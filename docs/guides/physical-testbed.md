@@ -17,7 +17,7 @@ You touch three files plus your network. Nothing in the C code changes.
 | File | Purpose | What you add |
 |------|---------|--------------|
 | `config/scada.json` | the published ICCP point model and HMI layout | one station per device, one point per signal |
-| `ingest/tags.json` (your copy) | the field mapping | one device per PLC/RTU, one tag per point, with addresses and scaling |
+| `ingest/tags.json` | the field mapping | one device per PLC/RTU, one tag per point, with addresses and scaling |
 | `suite/profiles.json` | the deployment to run | an ingestion deployment using your config and tags, with the simulators off |
 | network / firewall | reachability | a route to the device subnet and outbound access to the device ports |
 

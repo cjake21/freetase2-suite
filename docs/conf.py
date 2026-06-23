@@ -19,6 +19,12 @@ extensions = [
     "myst_parser",
 ]
 
+# Custom templates (overrides the page <title> separator; no em dash).
+templates_path = ["_templates"]
+
+# Do not auto-convert -- or --- into en/em dashes in rendered text.
+smartquotes = False
+
 myst_enable_extensions = [
     "colon_fence",   # ::: admonitions
     "deflist",

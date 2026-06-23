@@ -1,0 +1,5 @@
+{% extends "!layout.html" %}
+{# Override the page <title> so the separator is a pipe, not an em dash. #}
+{%- block htmltitle %}
+<title>{% if title %}{{ title|striptags|e }} | {% endif %}{{ docstitle|e }}</title>
+{%- endblock %}

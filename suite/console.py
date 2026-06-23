@@ -18,6 +18,7 @@ import os
 import signal
 import subprocess
 import tempfile
+import socket
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -38,6 +39,18 @@ DOC_TYPES = {
     ".ttf": "font/ttf", ".eot": "application/vnd.ms-fontobject",
     ".ico": "image/x-icon", ".txt": "text/plain",
 }
+
+
+def _port_open(host, port):
+    """True if something is accepting TCP connections on host:port (a cheap
+    readiness probe for the HMI bridge, which binds a few seconds after start)."""
+    if not port:
+        return False
+    try:
+        with socket.create_connection((host, int(port)), timeout=0.3):
+            return True
+    except OSError:
+        return False
 
 
 class Supervisor:
@@ -66,10 +79,16 @@ class Supervisor:
                 self.proc = None
                 self.name = None
             dep = tase2ctl.load_profiles().get(self.name or "", {})
+            http_port = dep.get("http_port", 8800) if running else None
             return {
                 "running": running,
                 "name": self.name,
-                "http_port": dep.get("http_port", 8800) if running else None,
+                "http_port": http_port,
+                # The HMI bridge binds its port a few seconds after the deployment
+                # starts (it spins up two ICCP agents first), so report whether it
+                # is actually serving yet. The header uses this to avoid offering a
+                # SCADA HMI link that points at a port nothing is listening on.
+                "hmi_ready": running and _port_open("127.0.0.1", http_port),
                 "mode": dep.get("mode") if running else None,
                 "security": dep.get("security") if running else None,
                 "protocol": dep.get("protocol") if running else None,

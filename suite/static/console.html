@@ -239,8 +239,12 @@ function renderHeader(){
   $("rt-ctx").innerHTML=segs.join("");
   $("estop").disabled=!r;
   const hmi=$("hmi-link");
-  if(r&&status.http_port){hmi.href="http://"+location.hostname+":"+status.http_port+"/";hmi.classList.remove("off");}
-  else hmi.classList.add("off");
+  if(r&&status.http_port&&status.hmi_ready){
+    hmi.href="http://"+location.hostname+":"+status.http_port+"/";
+    hmi.classList.remove("off");hmi.textContent="SCADA HMI";
+  } else if(r&&status.http_port){
+    hmi.classList.add("off");hmi.textContent="SCADA HMI · starting";
+  } else { hmi.classList.add("off");hmi.textContent="SCADA HMI"; }
   $("docs-link").classList.toggle("off",!status.docs_available);
 }
 function renderRack(){

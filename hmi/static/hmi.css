@@ -107,7 +107,18 @@ body{background:var(--bg-main);color:var(--text-main);font-family:var(--font-ui)
 
 /* ===== workspace ===== */
 .workspace{display:grid;grid-template-columns:1fr 372px;gap:0;flex:1;min-height:0;}
-@media(max-width:1100px){.workspace{grid-template-columns:1fr;}}
+/* Small or short screens: drop the viewport-locked layout so every block,
+ * including the right-column Instrument Detail and its operator controls,
+ * stays reachable by scrolling the page instead of being clipped. */
+@media(max-width:1100px),(max-height:820px){
+  body{min-height:0;}
+  .workspace{grid-template-columns:1fr;flex:0 0 auto;}
+  .points .table-wrap{max-height:58vh;}
+  .side{border-left:0;border-top:2px solid #0d100f;}
+  .alarm-list{max-height:none;}
+  .controlbay{flex:0 0 auto;}
+  .bay-body{overflow:visible;}
+}
 .side{display:flex;flex-direction:column;min-height:0;border-left:2px solid #0d100f;}
 .panel{display:flex;flex-direction:column;min-height:0;background:var(--bg-panel);}
 .points{border-right:0;}

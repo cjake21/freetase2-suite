@@ -1,0 +1,26 @@
+# cloned + built libIEC61850
+deps/
+
+# built tools
+src/tase2_server
+src/tase2_client
+src/tase2_probe
+src/tase2_hmi_agent
+
+# captures / scratch
+*.pcap
+*.o
+
+# python bytecode
+__pycache__/
+*.pyc
+
+# generated TLS material (lab certs/keys; never commit)
+certs/
+
+# test scratch
+tests/.interop_points.conf
+
+# built documentation + its venv
+docs/_build/
+docs/.venv/

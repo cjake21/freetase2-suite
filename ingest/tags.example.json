@@ -1,0 +1,41 @@
+{
+  "_comment": "Tag database: maps each ICCP point the TASE.2 server publishes to a real field-device source. Copy this to tags.json and edit. 'driver' picks the southbound reader (stub | modbus). 'type' float -> WRITEF, int -> WRITEI. 'scale'/'offset' convert raw register units to engineering units (value = raw*scale + offset). For modbus: 'kind' holding|input, 'decode' uint16|int16|uint32|int32|float32, and for 32-bit decodes 'word_order' big (ABCD, default) or little (CDAB) selects the register order; 'count' defaults to what the decode needs.",
+
+  "tags": [
+    {
+      "point": "tm1",
+      "type": "float",
+      "driver": "stub",
+      "value": 13.8,
+      "_note": "stub: plumbing test only, returns a fixed value, not real data"
+    },
+    {
+      "point": "tm2",
+      "type": "float",
+      "driver": "modbus",
+      "host": "10.30.0.5",
+      "port": 502,
+      "unit": 1,
+      "kind": "holding",
+      "register": 0,
+      "count": 2,
+      "decode": "float32",
+      "scale": 1.0,
+      "offset": 0.0,
+      "_note": "reads a 32-bit float from two holding registers on a real PLC"
+    },
+    {
+      "point": "ts1",
+      "type": "int",
+      "driver": "modbus",
+      "host": "10.30.0.5",
+      "port": 502,
+      "unit": 1,
+      "kind": "input",
+      "register": 10,
+      "count": 1,
+      "decode": "uint16",
+      "_note": "breaker status from an input register"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "_comment": "Single source of truth for the published TASE.2 point model and the HMI. Each station is one PLC/feed; each point is one published ICCP indication point. 'type' real -> RealQ float point (WRITEF), state -> StateQ integer point (WRITEI). 'name' is the ICCP point name the server publishes and the ingest tag database writes to (the join key between this file and ingest/tags*.json). A point may add 'control' to make it commandable from the HMI: control.kind 'discrete' for a state point (operator picks a state) or 'setpoint' for a real point (operator sends a value). The server then also creates a TASE.2 Block 5 device control object named <point>_ctl; the HMI operates it, and the ingest reads it and writes the command down to the PLC. The server builds its model from these names+types, the bridge subscribes and groups the HMI by station, and the HMI renders one card per station.",
+
+  "domain": "TestDomain",
+
+  "stations": [
+    {
+      "id": "plc1",
+      "name": "FEEDER BAY 1",
+      "points": [
+        { "name": "plc1_mw",  "type": "real",  "label": "TIE-LINE FLOW", "unit": "MW" },
+        { "name": "plc1_kv",  "type": "real",  "label": "BUS VOLTAGE",   "unit": "kV" },
+        { "name": "plc1_avr", "type": "real",  "label": "AVR SETPOINT",  "unit": "PU",
+          "control": { "kind": "setpoint" } },
+        { "name": "plc1_brk", "type": "state", "label": "BREAKER",       "unit": "",
+          "states": { "0": "OPEN", "1": "CLOSED" },
+          "control": { "kind": "discrete", "mode": "sbo" } }
+      ]
+    },
+    {
+      "id": "plc2",
+      "name": "FEEDER BAY 2",
+      "points": [
+        { "name": "plc2_mw",  "type": "real",  "label": "FEEDER FLOW", "unit": "MW" },
+        { "name": "plc2_kv",  "type": "real",  "label": "BUS VOLTAGE", "unit": "kV" },
+        { "name": "plc2_brk", "type": "state", "label": "BREAKER",     "unit": "",
+          "states": { "0": "OPEN", "1": "CLOSED" } }
+      ]
+    },
+    {
+      "id": "plc3",
+      "name": "TRANSFORMER T1",
+      "points": [
+        { "name": "plc3_mw",   "type": "real",  "label": "LOAD",     "unit": "MW" },
+        { "name": "plc3_temp", "type": "real",  "label": "OIL TEMP", "unit": "C"  },
+        { "name": "plc3_stat", "type": "state", "label": "COOLING",  "unit": "",
+          "states": { "0": "OFF", "1": "RUN" } }
+      ]
+    },
+    {
+      "id": "plc4",
+      "name": "BREAKER CTRL",
+      "points": [
+        { "name": "plc4_amps", "type": "real",  "label": "LINE CURRENT", "unit": "A" },
+        { "name": "plc4_stat", "type": "state", "label": "RECLOSER",     "unit": "",
+          "states": { "0": "LOCKOUT", "1": "READY" },
+          "control": { "kind": "discrete" } }
+      ]
+    }
+  ]
+}

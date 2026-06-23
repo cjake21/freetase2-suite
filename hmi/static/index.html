@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FreeTASE2 SCADA</title>
+<link rel="stylesheet" href="/static/hmi.css">
+</head>
+<body>
+
+<!-- 1. system header bar -->
+<header class="sysbar">
+  <div class="sysid">
+    <span class="sysname">FREETASE2 // ICCP SCADA</span>
+    <span class="syssub" id="sys-sub">DOMAIN -- &nbsp;|&nbsp; BLT -- &nbsp;|&nbsp; SES --</span>
+  </div>
+  <div class="sysstatus">
+    <div class="st"><span class="k">LINK STATE</span><span class="v" id="st-link">OFFLINE</span></div>
+    <div class="st"><span class="k">STATIONS</span><span class="v" id="st-stations">0/0</span></div>
+    <div class="st"><span class="k">SCAN</span><span class="v" id="st-scan">HOLD</span></div>
+    <div class="st"><span class="k">LAST UPDATE</span><span class="v" id="st-upd">--:--:--Z</span></div>
+    <div class="st"><span class="k">UTC</span><span class="v" id="st-clock">--:--:--Z</span></div>
+    <div class="st"><span class="k">ALARMS</span><span class="v" id="st-alm">0</span></div>
+  </div>
+</header>
+
+<!-- 2. alarm / status strip -->
+<section class="alarmstrip">
+  <div class="bar-head">
+    <span>ALARM SUMMARY</span>
+    <button class="op" id="ackbtn">ACKNOWLEDGE</button>
+  </div>
+  <div class="alarm-rows" id="alarm-rows"></div>
+</section>
+
+<!-- 3. dynamic station grid (one card per configured PLC/feed) -->
+<section class="grid-head">
+  <span>STATION OVERVIEW</span>
+  <span class="grid-sub" id="grid-sub">-- STATIONS</span>
+</section>
+<div class="station-grid" id="station-grid"></div>
+
+<!-- 4. event / report strip -->
+<section class="events">
+  <div class="bar-head"><span>EVENT LOG</span></div>
+  <div class="event-rows" id="event-rows"></div>
+</section>
+
+<!-- 5. collapsible reference / system notes -->
+<details class="reference">
+  <summary>REFERENCE / SYSTEM NOTES</summary>
+  <p class="ref-note">
+    Each station card is one PLC/feed declared in config/scada.json. Point values
+    are what the neighboring station receives over TASE.2 / ICCP Block 2 reports;
+    a station reads ONLINE while fresh report data arrives for its points and
+    OFFLINE when that data goes stale. Object model exchanged:
+  </p>
+  <div class="ref-grid">
+    <div><span class="k">PROTOCOL VERSION</span><span class="v" id="i-version">--</span></div>
+    <div><span class="k">SUPPORTED FEATURES</span><span class="v" id="i-features">--</span></div>
+    <div><span class="k">BILATERAL TABLE ID</span><span class="v" id="i-blt">--</span></div>
+    <div><span class="k">NEXT TRANSFER SET</span><span class="v" id="i-next">--</span></div>
+    <div><span class="k">DATA SET</span><span class="v" id="i-dataset">--</span></div>
+    <div><span class="k">TRANSFER SET</span><span class="v" id="i-ts">--</span></div>
+  </div>
+</details>
+
+<script src="/static/hmi.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "_comment": "Example tag database feeding TASE.2 points from a DNP3 (IEEE 1815) outstation. The gateway is a DNP3 master: it connects outbound to the outstation (default TCP 20000) and reads static points. 'driver':'dnp3'. Read fields: host, port, outstation (address, default 10), master (default 1), group (1=binary input, 30=analog input), variation (analog: 1=int32, 2=int16, 5=float, 6=double; binary: 2), index. Controllable points add a 'control' block with the CROB index and sbo (true=select-before-operate, false=direct operate); the gateway then operates group 12 var 1 on the outstation. Point names must match config/scada.json. To try it with no hardware, run ingest/dnp3_outstation_sim.py and point host at 127.0.0.1.",
+
+  "devices": {
+    "rtu1": { "driver": "dnp3", "host": "10.40.0.20", "port": 20000, "outstation": 10, "master": 1 }
+  },
+
+  "tags": [
+    { "point": "plc1_mw",  "type": "float", "device": "rtu1",
+      "group": 30, "variation": 5, "index": 0, "scale": 1.0, "offset": 0.0,
+      "_note": "analog input 0 (float) -> tie-line flow" },
+
+    { "point": "plc1_kv",  "type": "float", "device": "rtu1",
+      "group": 30, "variation": 5, "index": 1,
+      "_note": "analog input 1 (float) -> bus voltage" },
+
+    { "point": "plc1_brk", "type": "int", "device": "rtu1",
+      "group": 1, "variation": 2, "index": 0,
+      "control": { "index": 0, "sbo": true },
+      "_note": "binary input 0 -> breaker status; control operates CROB index 0 via select-before-operate" }
+  ]
+}

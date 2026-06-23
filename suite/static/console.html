@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FreeTASE2 Suite Control Console</title>
+<style>
+  :root { --bg:#f5f7fa; --card:#fff; --edge:#dce1e7; --ink:#222b35; --dim:#5b6776;
+          --blue:#2563a8; --green:#2e7d4f; --red:#b23b2e; --amber:#b6862b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Inter",system-ui,Segoe UI,Roboto,Arial,sans-serif;
+         background:var(--bg); color:var(--ink); font-size:14px; }
+  header { background:#1f2a36; color:#eaeef2; padding:14px 22px; }
+  header h1 { margin:0; font-size:16px; letter-spacing:.5px; font-weight:600; }
+  header .sub { font-size:12px; color:#9fb0c0; margin-top:3px; }
+  main { max-width:980px; margin:0 auto; padding:18px 22px; }
+  .status { display:flex; align-items:center; gap:14px; background:var(--card);
+            border:1px solid var(--edge); border-radius:6px; padding:12px 16px; margin-bottom:18px; }
+  .dot { width:10px; height:10px; border-radius:50%; background:#b9c2cc; }
+  .dot.on { background:var(--green); } .dot.off { background:#b9c2cc; }
+  .status .label { font-weight:600; }
+  .status a { margin-left:auto; color:var(--blue); text-decoration:none; font-weight:600; }
+  .status a.disabled { color:#9aa6b2; pointer-events:none; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.8px; color:var(--dim); margin:18px 0 8px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px; }
+  .card { background:var(--card); border:1px solid var(--edge); border-radius:6px; padding:14px 16px; }
+  .card.active { border-color:var(--green); box-shadow:0 0 0 1px var(--green) inset; }
+  .name { font-weight:700; font-size:15px; }
+  .badges { margin:6px 0 8px; }
+  .badge { display:inline-block; font-size:11px; padding:1px 7px; border-radius:10px; margin-right:5px;
+           border:1px solid var(--edge); color:var(--dim); }
+  .badge.mode { color:var(--blue); border-color:#bcd4ec; }
+  .badge.sec-hardened { color:var(--green); border-color:#bfe0c9; }
+  .badge.sec-insecure { color:var(--amber); border-color:#e9d9af; }
+  .desc { color:var(--dim); font-size:13px; min-height:34px; }
+  button { font:inherit; padding:7px 14px; border-radius:5px; border:1px solid var(--edge);
+           background:#fff; color:var(--ink); cursor:pointer; }
+  button.start { border-color:var(--blue); color:var(--blue); }
+  button.stop { border-color:var(--red); color:var(--red); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .note { color:var(--dim); font-size:12px; margin-top:18px; line-height:1.5; }
+</style>
+</head>
+<body>
+<header>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+    <div>
+      <h1>FreeTASE2 Suite // Control Console</h1>
+      <div class="sub">Select an operating mode, start it, and open its SCADA HMI</div>
+    </div>
+    <a id="docs-link" href="/docs/" target="_blank"
+       style="color:#9fb0c0;text-decoration:none;font-size:13px;border:1px solid #3a4754;padding:6px 12px;border-radius:5px">Documentation &rarr;</a>
+  </div>
+</header>
+<main>
+  <div class="status">
+    <span class="dot" id="dot"></span>
+    <span class="label" id="status-text">No deployment running</span>
+    <a id="hmi-link" class="disabled" href="#" target="_blank">Open SCADA HMI &rarr;</a>
+  </div>
+
+  <h2>Deployments</h2>
+  <div class="grid" id="grid"></div>
+
+  <p class="note">
+    One deployment runs at a time (they share ports by default). Simulation mode
+    connects to nothing. Ingestion mode reaches real devices, so review the security
+    profile and your network segmentation first. Edit <code>suite/profiles.json</code>
+    to add a deployment for your testbed.
+  </p>
+</main>
+
+<script>
+"use strict";
+let status = { running: false };
+
+async function api(path, body) {
+  const opt = body ? { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) } : {};
+  const r = await fetch(path, opt);
+  return r.json();
+}
+
+function render(deps) {
+  const grid = document.getElementById("grid");
+  grid.innerHTML = Object.entries(deps).filter(([k]) => k !== "_comment").map(([name, d]) => {
+    const active = status.running && status.name === name;
+    const sec = d.security || "insecure";
+    return `<div class="card ${active ? "active" : ""}">
+      <div class="name">${name}</div>
+      <div class="badges">
+        <span class="badge mode">${d.mode || "?"}</span>
+        <span class="badge sec-${sec}">${sec}</span>
+      </div>
+      <div class="desc">${d.description || ""}</div>
+      ${active
+        ? `<button class="stop" data-stop="1">Stop</button>`
+        : `<button class="start" data-start="${name}" ${status.running ? "disabled" : ""}>Start</button>`}
+    </div>`;
+  }).join("");
+  grid.querySelectorAll("button[data-start]").forEach(b =>
+    b.onclick = async () => { b.disabled = true; status = await api("/api/start", { name:b.dataset.start }); await refresh(); });
+  grid.querySelectorAll("button[data-stop]").forEach(b =>
+    b.onclick = async () => { b.disabled = true; status = await api("/api/stop", {}); await refresh(); });
+}
+
+function paintStatus() {
+  document.getElementById("dot").className = "dot " + (status.running ? "on" : "off");
+  document.getElementById("status-text").textContent = status.running
+    ? `Running: ${status.name}  (${status.mode}, ${status.security})`
+    : "No deployment running";
+  const link = document.getElementById("hmi-link");
+  if (status.running && status.http_port) {
+    link.href = `http://${location.hostname}:${status.http_port}/`;
+    link.classList.remove("disabled");
+  } else {
+    link.classList.add("disabled");
+  }
+  const docs = document.getElementById("docs-link");
+  if (docs) {
+    docs.style.opacity = status.docs_available ? "1" : "0.45";
+    docs.title = status.docs_available ? "" : "build the docs first: make -C docs html";
+  }
+}
+
+let deployments = {};
+async function refresh() {
+  status = await api("/api/status");
+  paintStatus();
+  render(deployments);
+}
+
+async function init() {
+  deployments = await api("/api/deployments");
+  await refresh();
+  setInterval(refresh, 2500);
+}
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>

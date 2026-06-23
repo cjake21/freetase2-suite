@@ -1,0 +1,12 @@
+# Build outputs and clones rebuilt inside the image
+deps/
+src/tase2_server
+src/tase2_client
+src/tase2_probe
+src/tase2_hmi_agent
+**/__pycache__/
+*.pyc
+*.pcap
+.git/
+certs/
+tests/.interop_points.conf

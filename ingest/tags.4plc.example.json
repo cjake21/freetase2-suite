@@ -1,0 +1,35 @@
+{
+  "_comment": "Four PLCs on one subnet feeding the TASE.2 publisher. The gateway is a Modbus TCP MASTER: it connects OUTBOUND to each PLC's IP:port and polls the listed registers. Point the gateway at the PLCs here; you do not configure the PLCs to send anywhere. Each PLC must run a Modbus TCP server (slave) and expose these registers, and the gateway host must have a route to 10.30.0.0/24. Declare every PLC once under 'devices', then each tag references its device by name. Add a 5th PLC by adding a device + its tags and saving this file: the gateway reloads it live (no restart). NOTE: the current server publishes a fixed 4-point set (tm1/tm2/ts1/ts2), so this example uses one point per PLC; carrying more points per PLC needs the server's generalized tag model (see docs).",
+
+  "devices": {
+    "plc1": { "driver": "modbus", "host": "10.30.0.11", "port": 502, "unit": 1, "_desc": "feeder bay 1 RTU" },
+    "plc2": { "driver": "modbus", "host": "10.30.0.12", "port": 502, "unit": 1, "_desc": "feeder bay 2 RTU" },
+    "plc3": { "driver": "modbus", "host": "10.30.0.13", "port": 502, "unit": 1, "_desc": "transformer monitor" },
+    "plc4": { "driver": "modbus", "host": "10.30.0.14", "port": 502, "unit": 1, "_desc": "breaker controller" }
+  },
+
+  "tags": [
+    {
+      "point": "tm1", "type": "float", "device": "plc1",
+      "kind": "holding", "register": 0, "decode": "float32", "word_order": "big",
+      "scale": 1.0, "offset": 0.0,
+      "_note": "MW from a 32-bit float in holding registers 0-1 on plc1"
+    },
+    {
+      "point": "tm2", "type": "float", "device": "plc2",
+      "kind": "input", "register": 100, "decode": "int16",
+      "scale": 0.1, "offset": 0.0,
+      "_note": "bus voltage: int16 in input register 100, scaled x0.1 to kV"
+    },
+    {
+      "point": "ts1", "type": "int", "device": "plc3",
+      "kind": "input", "register": 10, "decode": "uint16",
+      "_note": "transformer status word from input register 10 on plc3"
+    },
+    {
+      "point": "ts2", "type": "int", "device": "plc4",
+      "kind": "holding", "register": 5, "decode": "uint16",
+      "_note": "breaker position (0/1) from holding register 5 on plc4"
+    }
+  ]
+}

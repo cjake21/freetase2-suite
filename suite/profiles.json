@@ -1,0 +1,45 @@
+{
+  "_comment": "Named deployments for the unified tool. Each one selects an operating mode (simulation vs ingestion), a security profile (insecure vs hardened), a point model, and (for ingestion) a tag database. The control console and tase2ctl launch these by name. Add your own deployment here for a real testbed.",
+
+  "deployments": {
+    "sim-demo": {
+      "description": "Simulation mode. Synthetic values from the server, connects to nothing. For training and capture.",
+      "mode": "simulation",
+      "security": "insecure",
+      "config": "config/scada.json",
+      "http_port": 8800,
+      "tase2_port": 10502
+    },
+
+    "modbus-stub": {
+      "description": "Ingestion mode with stub Modbus devices. Full pipeline with no hardware; plc3 is offline on purpose.",
+      "mode": "ingestion",
+      "security": "insecure",
+      "config": "config/scada.json",
+      "tags": "ingest/tags.scada-demo.json",
+      "http_port": 8800,
+      "tase2_port": 10502
+    },
+
+    "dnp3-demo": {
+      "description": "Ingestion mode over DNP3 with the bundled outstation simulator. No hardware needed.",
+      "mode": "ingestion",
+      "security": "insecure",
+      "config": "config/scada.dnp3-demo.json",
+      "tags": "ingest/tags.dnp3-demo.json",
+      "dnp3_sim": true,
+      "http_port": 8800,
+      "tase2_port": 10502
+    },
+
+    "hardened": {
+      "description": "Ingestion mode, hardened. Mutual TLS (Secure ICCP) plus a loopback command allowlist. Run scripts/gen_certs.sh first.",
+      "mode": "ingestion",
+      "security": "hardened",
+      "config": "config/scada.json",
+      "tags": "ingest/tags.scada-demo.json",
+      "http_port": 8800,
+      "tase2_port": 10502
+    }
+  }
+}

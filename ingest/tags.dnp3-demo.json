@@ -1,0 +1,14 @@
+{
+  "_comment": "DNP3 demo tags for scripts/57_run_dnp3_demo.sh. Points match config/scada.dnp3-demo.json and map to the bundled outstation simulator on 127.0.0.1:20000 (analog inputs 0/1, binary input 0 with CROB index 0).",
+
+  "devices": {
+    "rtu1": { "driver": "dnp3", "host": "127.0.0.1", "port": 20000, "outstation": 10, "master": 1 }
+  },
+
+  "tags": [
+    { "point": "rtu1_mw",  "type": "float", "device": "rtu1", "group": 30, "variation": 5, "index": 0 },
+    { "point": "rtu1_kv",  "type": "float", "device": "rtu1", "group": 30, "variation": 5, "index": 1 },
+    { "point": "rtu1_brk", "type": "int",   "device": "rtu1", "group": 1,  "variation": 2, "index": 0,
+      "control": { "index": 0, "sbo": true } }
+  ]
+}

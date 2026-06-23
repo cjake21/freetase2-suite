@@ -14,17 +14,17 @@
     <div class="pn">FREE TASE2 SUITE</div>
     <div class="ps">ICCP / SCADA HMI Runtime</div>
   </div>
-  <div class="hblock state">
-    <div class="hk">Link State</div>
-    <div class="hv"><span class="lamp" id="hb-lamp"></span><span id="hb-link">OFFLINE</span></div>
-  </div>
-  <div class="hblock"><div class="hk">Stations</div><div class="hv num" id="hb-stations">0/0</div></div>
-  <div class="hblock"><div class="hk">Scan</div><div class="hv" id="hb-scan" style="font-size:16px">HOLD</div></div>
-  <div class="hblock alm"><div class="hk">Critical</div><div class="hv num" id="hb-crit">0</div></div>
-  <div class="hblock alm"><div class="hk">Warning</div><div class="hv num" id="hb-warn">0</div></div>
-  <div class="hsp"></div>
-  <div class="hblock"><div class="hk">Last Report</div><div class="hv num" id="hb-rpt" style="font-size:16px">--:--:--</div></div>
-  <div class="hblock"><div class="hk">UTC</div><div class="hv num" id="hb-clock" style="font-size:17px">--:--:--</div></div>
+  <div class="statrail" id="statrail">
+    <span class="ann-ind"><span class="lamp" id="hb-lamp"></span><span class="ai-k">gateway</span><span class="ai-v" id="hb-link">offline</span></span>
+    <span class="sr-sep"></span>
+    <span class="ann-ind"><span class="ai-k">stations</span><span class="ai-v num" id="hb-stations">0/0</span></span>
+    <span class="sr-sep"></span>
+    <span class="ann-ind"><span class="ai-k">scan</span><span class="ai-v" id="hb-scan">hold</span></span>
+    <span class="sr-sep"></span>
+    <span class="ann-ind alm"><span class="ai-k">alarms</span><span class="ai-v" id="hb-alarms">no alarms</span></span>
+    <span class="sr-sep"></span>
+    <span class="ann-ind"><span class="ai-k">last rpt</span><span class="ai-v num" id="hb-rpt">--:--:--</span></span>
+    <span class="sr-clk"><span class="ai-k">utc</span><span class="ai-v num" id="hb-clock">--:--:--</span></span>
 </header>
 
 <!-- communication / mimic bus -->

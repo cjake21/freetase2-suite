@@ -27,17 +27,22 @@ body{background:var(--bg-main);color:var(--text-main);font-family:var(--font-ui)
   background:linear-gradient(180deg,#241009,#19120f);border-right:3px solid var(--line-black);min-width:230px;}
 .ident .pn{font-weight:700;font-size:23px;letter-spacing:.1em;color:#f3eee2;text-shadow:0 1px 0 #000;}
 .ident .ps{font-size:11px;letter-spacing:.22em;color:var(--armed);text-transform:uppercase;margin-top:2px;}
-/* center: large runtime indicator (no KPI boxes) */
-.runtime{flex:1;display:flex;align-items:center;gap:18px;padding:8px 22px;
-  background:linear-gradient(180deg,#232927,#1b201f);border-right:1px solid var(--line-soft);}
-.rt-lamp{width:34px;height:34px;border-radius:50%;background:#14181 7;background:#141817;border:2px solid var(--line-black);
-  box-shadow:inset 0 0 6px #000,inset 0 2px 2px #000a;flex:0 0 34px;}
-.rt-lamp.run{background:radial-gradient(circle at 35% 30%,#9be8ad,#2f9c4f);box-shadow:0 0 14px #4fb36a,inset 0 0 3px #fff8;}
-.rt-lamp.armed{background:radial-gradient(circle at 35% 30%,#f1cf7a,#b9851d);box-shadow:0 0 14px #d8a22a,inset 0 0 3px #fff8;}
-.rt-state{font-size:30px;font-weight:700;letter-spacing:.08em;line-height:1;}
-.rt-sub{font-family:var(--font-data);font-size:13px;color:var(--text-muted);margin-top:5px;letter-spacing:.02em;}
-.rt-sub .sep{color:var(--text-dim);margin:0 8px;}
-.rt-sub .prof-h{color:var(--run);} .rt-sub .prof-i{color:var(--armed);}
+/* center: compact status rail (annunciator, not KPI boxes) */
+.statrail{flex:1;display:flex;align-items:center;gap:13px;padding:0 20px;overflow:hidden;white-space:nowrap;
+  background:linear-gradient(180deg,#232927,#1b201f);border-right:1px solid var(--line-soft);
+  font-family:var(--font-data);font-size:12.5px;color:var(--text-muted);}
+.srlamp{width:13px;height:13px;border-radius:50%;background:#141817;border:1px solid #0c0f0e;
+  box-shadow:inset 0 0 3px #000;flex:0 0 13px;}
+.srlamp.run{background:radial-gradient(circle at 35% 30%,#9be8ad,#2f9c4f);box-shadow:0 0 7px #4fb36a;}
+.srlamp.armed{background:radial-gradient(circle at 35% 30%,#f1cf7a,#b9851d);box-shadow:0 0 7px #d8a22a;}
+.sr-seg{display:flex;align-items:center;gap:7px;min-width:0;}
+.sr-dep{color:var(--text-main);letter-spacing:.04em;}
+.sr-st{font-family:var(--font-ui);font-size:11px;letter-spacing:.14em;text-transform:uppercase;}
+.sr-st.run{color:var(--run);} .sr-st.armed{color:var(--armed);} .sr-st.off{color:var(--dark);}
+.sr-k{color:var(--text-dim);text-transform:uppercase;font-family:var(--font-ui);font-size:10.5px;letter-spacing:.1em;}
+.sr-prof-i{color:var(--armed);} .sr-prof-h{color:var(--run);}
+.sr-sep{width:1px;height:18px;background:var(--line-soft);flex:0 0 1px;}
+.sr-clk{margin-left:auto;color:var(--text-muted);padding-left:8px;}
 .hlinks{display:flex;align-items:center;gap:8px;padding:0 14px;border-right:1px solid var(--line-soft);}
 .linkbtn{font-family:var(--font-ui);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);
   text-decoration:none;padding:8px 13px;border:1px solid var(--line-hard);background:linear-gradient(#333a38,#262c2b);}
@@ -167,12 +172,9 @@ body{background:var(--bg-main);color:var(--text-main);font-family:var(--font-ui)
 <body>
 <header class="appliance">
   <div class="ident"><div class="pn">FREE TASE2 SUITE</div><div class="ps">SCADA Runtime Controller</div></div>
-  <div class="runtime" id="runtime">
-    <div class="rt-lamp" id="rt-lamp"></div>
-    <div>
-      <div class="rt-state" id="rt-state">STOPPED</div>
-      <div class="rt-sub" id="rt-sub">no deployment energized</div>
-    </div>
+  <div class="statrail" id="statrail">
+    <span class="srlamp" id="rt-lamp"></span>
+    <span id="rt-ctx" style="display:flex;align-items:center;gap:13px;flex:1;min-width:0;"></span>
   </div>
   <div class="hlinks">
     <a id="hmi-link" class="linkbtn off" href="#" target="_blank">SCADA HMI</a>
@@ -222,14 +224,19 @@ const STWORD={run:"Running",armed:"Armed",fault:"Faulted",dark:"Dark"};
 
 function renderHeader(){
   const r=status.running, ins=status.security==="insecure";
-  $("rt-lamp").className="rt-lamp "+(r?(ins?"armed":"run"):"");
-  $("rt-state").textContent=r?"RUNNING":"STOPPED";
-  $("rt-state").style.color=r?(ins?"var(--armed)":"var(--run)"):"var(--dark)";
+  $("rt-lamp").className="srlamp "+(r?(ins?"armed":"run"):"");
+  const sep=`<span class="sr-sep"></span>`;
+  let segs=[];
   if(r){
-    const pc=ins?"prof-i":"prof-h";
-    $("rt-sub").innerHTML=`<span class="data">${esc(status.name)}</span><span class="sep">/</span>${esc(status.protocol||"")} ${esc(status.mode||"")}`
-      +`<span class="sep">/</span><span class="${pc}">${esc((status.security||"").toUpperCase())}</span><span class="sep">/</span><span class="data" id="hclk">${clk()}</span>`;
-  } else { $("rt-sub").innerHTML=`no deployment energized <span class="sep">/</span><span class="data" id="hclk">${clk()}</span>`; }
+    segs.push(`<span class="sr-seg"><span class="sr-dep data">${esc(status.name)}</span><span class="sr-st ${ins?"armed":"run"}">energized</span></span>`);
+    segs.push(sep+`<span class="sr-seg">${esc(status.protocol||"")} ${esc(status.mode||"")}</span>`);
+    segs.push(sep+`<span class="sr-seg"><span class="sr-k">profile</span><span class="${ins?"sr-prof-i":"sr-prof-h"}">${esc(status.security||"")}</span></span>`);
+  } else {
+    segs.push(`<span class="sr-seg"><span class="sr-st off">no deployment energized</span></span>`);
+  }
+  segs.push(sep+`<span class="sr-seg"><span class="sr-k">slots</span>${order.length} / ${r?1:0} active</span>`);
+  segs.push(`<span class="sr-clk data" id="hclk">${clk()}</span>`);
+  $("rt-ctx").innerHTML=segs.join("");
   $("estop").disabled=!r;
   const hmi=$("hmi-link");
   if(r&&status.http_port){hmi.href="http://"+location.hostname+":"+status.http_port+"/";hmi.classList.remove("off");}

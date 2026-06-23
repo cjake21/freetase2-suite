@@ -49,14 +49,15 @@ function render(){
   const alarms=buildAlarms(stations,pts);
   const crit=alarms.filter(a=>a.sev==="crit").length, warn=alarms.filter(a=>a.sev==="warn").length;
 
-  // appliance header
-  const link=B?(onlineCount===stations.length?"NORMAL":(onlineCount?"DEGRADED":"NO DATA")):"OFFLINE";
-  $("hb-lamp").className="lamp "+(B?(onlineCount===stations.length?"run":(onlineCount?"warn":"crit")):"crit");
-  setT("hb-link",link, B?(onlineCount===stations.length?"sev-ok":"sev-warn"):"sev-crit");
-  setT("hb-stations",`${onlineCount}/${stations.length}`, onlineCount===stations.length?"sev-ok":"sev-warn");
+  // appliance status rail (compact annunciator indicators)
+  const allOn=onlineCount===stations.length;
+  $("hb-lamp").className="lamp "+(B?(allOn?"run":(onlineCount?"warn":"crit")):"crit");
+  setV("hb-link", B?(allOn?"online":(onlineCount?"partial":"no data")):"offline", B?(allOn?"run":"warn"):"crit");
+  setV("hb-stations", `${onlineCount}/${stations.length}`, allOn?"run":"warn");
   const scanning=B&&state.report&&state.report.count>0;
-  setT("hb-scan",scanning?"RUN":"HOLD",scanning?"sev-ok":"sev-warn");
-  setT("hb-crit",String(crit),crit?"sev-crit":"sev-off"); setT("hb-warn",String(warn),warn?"sev-warn":"sev-off");
+  setV("hb-scan", scanning?"running":"hold", scanning?"run":"warn");
+  setV("hb-alarms", crit?`${crit} crit / ${warn} warn`:(warn?`0 crit / ${warn} warn`:"no alarms"),
+       crit?"crit":(warn?"warn":"off"));
   $("hb-rpt").textContent=fmtReport(state.report&&state.report.last_report_time);
 
   renderStationFilter(stations);
@@ -67,7 +68,7 @@ function render(){
   renderDetail(pts);
   detectEvents(stations,alarms);
 }
-function setT(id,txt,cls){ const e=$(id); if(e){ e.textContent=txt; if(cls)e.className="num "+cls; } }
+function setV(id,txt,st){ const e=$(id); if(e){ e.textContent=txt; e.className="ai-v"+(st?" "+st:""); } }
 
 // ---- communication / mimic bus --------------------------------------------
 function renderMimic(stations){
@@ -251,6 +252,6 @@ function init(){
   fetch("/api/state").then(r=>r.json()).then(s=>{state=s;render();});
   const es=new EventSource("/api/events");
   es.onmessage=ev=>{ try{ state=JSON.parse(ev.data); render(); }catch(e){} };
-  es.onerror=()=>{ const e=$("hb-link"); if(e){e.textContent="OFFLINE";e.className="num sev-crit";} $("hb-lamp").className="lamp crit"; };
+  es.onerror=()=>{ const e=$("hb-link"); if(e){e.textContent="offline";e.className="ai-v crit";} $("hb-lamp").className="lamp crit"; };
 }
 document.addEventListener("DOMContentLoaded",init);

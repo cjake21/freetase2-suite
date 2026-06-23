@@ -51,7 +51,7 @@ function render(){
   const crit=alarms.filter(a=>a.sev==="crit").length;
   const warn=alarms.filter(a=>a.sev==="warn").length;
 
-  $("sys-sub").textContent = `domain ${state.server.domain} · blt ${state.meta.blt||"--"} · session ${state.server.host}:${state.server.port}`;
+  $("sys-sub").innerHTML = `domain ${esc(state.server.domain)} &middot; blt ${esc(state.meta.blt||"--")} &middot; session <span class="port">${esc(state.server.host)}:${state.server.port}</span>`;
   const link = B?(onlineCount===stations.length?"NORMAL":(onlineCount?"DEGRADED":"NO DATA")):"OFFLINE";
   setV("st-link",link, B?(onlineCount===stations.length?"sev-ok":"sev-warn"):"sev-crit");
   setV("st-stations",`${onlineCount}/${stations.length}`, onlineCount===stations.length?"sev-ok":(onlineCount?"sev-warn":"sev-crit"));
@@ -102,17 +102,17 @@ function renderTable(pts){
   body.innerHTML=rows.map(p=>{
     const s=sev(p);
     const rc=s==="crit"?"row-crit":s==="warn"?"row-warn":s==="off"?"row-off":"";
-    const vcls=s==="crit"?"alarm":s==="off"?"off":(p.type==="state"&&p.fresh?"en":"");
-    const qchip=`<span class="chiptag ${s==="ok"?"ok":s==="off"?"off":s}">${esc(p.quality||(p.fresh?"GOOD":"STALE"))}</span>`;
-    const ctl=p.control?`<span class="chiptag info">${p.mode==="sbo"?"SBO":(p.control==="setpoint"?"SP":"DIR")}</span>`:'<span class="col-dim">--</span>';
+    const vcls=s==="crit"?"crit":s==="off"?"off":(p.type==="state"&&p.fresh?"ok":"");
+    const qtxt=esc(p.quality||(p.fresh?"GOOD":"STALE"));
+    const ctl=p.control?`<span class="ctl-tag">${p.mode==="sbo"?"SBO":(p.control==="setpoint"?"SETPT":"DIRECT")}</span>`:'<span class="c-dim">--</span>';
     return `<tr data-pt="${esc(p.name)}" class="${p.name===selected?"sel ":""}${rc}">
-      <td class="col-dim">${esc(p.station)}</td>
-      <td>${esc(p.name)}</td>
-      <td class="col-dim">${esc(p.label)}</td>
-      <td class="num col-val ${vcls}">${esc(valText(p))}</td>
-      <td>${qchip}</td>
+      <td class="c-dim">${esc(p.station)}</td>
+      <td class="c-pt">${esc(p.name)}</td>
+      <td class="c-dim">${esc(p.label)}</td>
+      <td class="num"><span class="val ${vcls}">${esc(valText(p))}</span></td>
+      <td><span class="q ${s}">${qtxt}</span></td>
       <td>${ctl}</td>
-      <td class="num col-dim">${fmtAge(p.age)}</td>
+      <td class="num c-dim">${fmtAge(p.age)}</td>
     </tr>`;
   }).join("");
   body.querySelectorAll("tr[data-pt]").forEach(tr=>tr.onclick=()=>{ selected=tr.dataset.pt; render(); });
@@ -124,18 +124,18 @@ function renderDetail(pts){
   const p=pts.find(x=>x.name===selected);
   if(!p){ host.innerHTML='<div class="empty">No point selected</div>'; return; }
   const s=sev(p);
-  const rows=[
-    ["point",esc(p.name)],["station",`${esc(p.station)} (${esc(p.station_name)})`],["description",esc(p.label)],
-    ["type",esc(p.type)],["value",esc(valText(p))],
-    ["quality",`<span class="chiptag ${s==="ok"?"ok":s==="off"?"off":s}">${esc(p.quality||"--")}</span>`],
-    ["station comms",p.station_online?'<span class="chiptag ok">ONLINE</span>':'<span class="chiptag off">OFFLINE</span>'],
-    ["time tag",p.ts?new Date(p.ts*1000).toISOString().replace("T"," ").slice(0,19):"--"],
-    ["age",fmtAge(p.age)],
-    ["control",p.control?`${esc(p.control)} / ${esc(p.mode)}`:"none (read only)"],
-  ];
-  let html=`<div class="detail-title">${esc(p.name)}</div>
-    <div class="kv">${rows.map(r=>`<div class="k">${r[0]}</div><div class="val">${r[1]}</div>`).join("")}</div>`;
-  if(p.control){ html+=`<div class="detail-sec"><div class="lbl">Control</div>${controlPanel(p)}</div>`; }
+  const f=(k,v)=>`<div class="field"><div class="fk">${k}</div><div class="fv">${v}</div></div>`;
+  let html=`<div class="detail-title">${esc(p.name)}</div>`;
+  html+=f("Station",`${esc(p.station)} &middot; ${esc(p.station_name)}`);
+  html+=f("Description",esc(p.label));
+  html+=f("Type",esc(p.type));
+  html+=f("Value",`<span class="val ${s==="crit"?"crit":s==="off"?"off":"ok"}">${esc(valText(p))}</span>`);
+  html+=f("Quality",`<span class="q ${s}">${esc(p.quality||"--")}</span>`);
+  html+=f("Station comms",p.station_online?'<span class="q ok">ONLINE</span>':'<span class="q off">OFFLINE</span>');
+  html+=f("Time tag",`<span class="mono">${p.ts?new Date(p.ts*1000).toISOString().replace("T"," ").slice(0,19):"--"}</span>`);
+  html+=f("Age",fmtAge(p.age));
+  html+=f("Control",p.control?`${esc(p.control)} / ${esc(p.mode)}`:"none (read only)");
+  if(p.control){ html+=`<div class="detail-sec">Operator Control</div>${controlPanel(p)}`; }
   host.innerHTML=html;
   wireDetail(p);
 }
@@ -178,11 +178,11 @@ function renderAlarms(alarms){
   if(!alarms.length){ body.innerHTML='<tr class="none-row"><td colspan="5">no active alarms</td></tr>'; return; }
   body.innerHTML=alarms.slice().sort((a,b)=>(a.sev==="crit"?0:1)-(b.sev==="crit"?0:1)).map(a=>{
     const ackd=acked.has(a.id);
-    return `<tr class="row-${a.sev}">
-      <td><span class="chiptag ${a.sev}">${a.sev.toUpperCase()}</span></td>
-      <td class="col-dim">${esc(a.id)}</td><td>${esc(a.cond)}</td>
-      <td class="col-dim">${esc(a.val||"")}</td>
-      <td class="${ackd?"col-dim":""}">${ackd?"ACK":"UNACK"}</td></tr>`;
+    return `<tr class="alm-${a.sev}">
+      <td><span class="sevcell ${a.sev}">${a.sev.toUpperCase()}</span></td>
+      <td class="c-dim">${esc(a.id)}</td><td>${esc(a.cond)}</td>
+      <td class="c-dim">${esc(a.val||"")}</td>
+      <td class="${ackd?"c-dim":"sev-warn"}">${ackd?"ACK":"UNACK"}</td></tr>`;
   }).join("");
 }
 
@@ -193,10 +193,10 @@ function renderEvents(){
   const rows=events.filter(e=>evFilter==="ALL"||e.type===evFilter);
   if(!rows.length){ body.innerHTML='<tr class="none-row"><td colspan="4">no events</td></tr>'; return; }
   body.innerHTML=rows.slice(0,120).map(e=>`<tr>
-    <td class="col-dim">${e.t}</td>
-    <td><span class="chiptag ${e.sev==="crit"?"crit":e.sev==="warn"?"warn":e.sev==="rx"?"info":"off"}">${e.sev.toUpperCase()}</span></td>
-    <td class="ev-${e.type.toLowerCase()}">${e.type}</td>
-    <td>${esc(e.text)}</td></tr>`).join("");
+    <td class="c-dim raw">${e.t}</td>
+    <td class="${e.sev==="crit"?"sev-crit":e.sev==="warn"?"sev-warn":"sev-off"}" style="font-weight:700">${e.sev.toUpperCase()}</td>
+    <td><span class="evtype ${e.type.toLowerCase()}">${e.type}</span></td>
+    <td class="raw">${esc(e.text)}</td></tr>`).join("");
 }
 function detectEvents(stations,alarms){
   const rt=state.report&&state.report.last_report_time;

@@ -3,174 +3,287 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FreeTASE2 Suite Console</title>
+<title>FREE TASE2 SUITE // Operations Launcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Roboto+Condensed:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --mono:"IBM Plex Mono","JetBrains Mono","Roboto Mono","DejaVu Sans Mono",monospace;
-    --sans:"Inter","IBM Plex Sans",system-ui,"Segoe UI",Roboto,Arial,sans-serif;
-    --bg:#0a0d11; --bg2:#0e1217; --bg3:#141a21; --edge:#232c36; --edge2:#303b47;
-    --ink:#c8d1da; --dim:#8a96a3; --label:#66727f;
-    --ok:#3fb950; --warn:#d29922; --crit:#f85149; --info:#58a6ff; --off:#5b6571;
-  }
-  *{box-sizing:border-box;} html,body{margin:0;height:100%;}
-  body{font-family:var(--sans);font-size:13px;color:var(--ink);background:var(--bg);
-       display:flex;flex-direction:column;min-height:100vh;-webkit-font-smoothing:antialiased;}
-  .statusbar{display:flex;align-items:stretch;justify-content:space-between;
-             border-bottom:1px solid var(--edge2);background:var(--bg3);}
-  .sysid{display:flex;flex-direction:column;justify-content:center;padding:6px 14px;gap:2px;}
-  .sysname{font-size:12.5px;font-weight:600;letter-spacing:1.2px;color:#aeb9c4;}
-  .syssub{font-family:var(--mono);font-size:10.5px;color:var(--dim);}
-  .stats{display:flex;align-items:stretch;}
-  .stat{display:flex;flex-direction:column;justify-content:center;gap:2px;padding:5px 14px;
-        border-left:1px solid var(--edge);min-width:96px;}
-  .stat .k{font-size:9px;letter-spacing:.8px;color:var(--label);text-transform:uppercase;}
-  .stat .v{font-family:var(--mono);font-size:13px;font-weight:600;}
-  .links{display:flex;align-items:center;gap:8px;padding:0 12px;border-left:1px solid var(--edge);}
-  .links a{font-family:var(--mono);font-size:11px;color:var(--dim);text-decoration:none;
-           border:1px solid var(--edge2);padding:5px 10px;border-radius:2px;}
-  .links a:hover{color:var(--ink);border-color:var(--label);}
-  .links a.off{opacity:.4;pointer-events:none;}
+:root{
+  --font-ui:"Barlow Semi Condensed","Roboto Condensed","DIN Condensed","Arial Narrow",Arial,sans-serif;
+  --font-log:"JetBrains Mono","Roboto Mono","Consolas",monospace;
+  --graphite:#1b1e22; --steel:#262b31; --steel2:#2d333a; --steel3:#20252b;
+  --border:#3c444d; --border-lt:#525c66;
+  --ink:#dce1e6; --dim:#9aa3ac; --label:#79838d;
+  --run:#49b35f; --stop:#737d87; --warn:#e0a32b; --alarm:#e0463b; --info:#cfd6dc;
+  --hardened:#49b35f; --insecure:#e0a32b;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;}
+body{font-family:var(--font-ui);letter-spacing:.015em;font-size:15px;color:var(--ink);
+     background:var(--graphite);display:flex;flex-direction:column;min-height:100vh;}
+.mono,.config-name,.script-path,.port,.raw-event{font-family:var(--font-log);font-size:12.5px;}
 
-  .workspace{display:grid;grid-template-columns:1fr 360px;gap:8px;padding:8px;}
-  @media(max-width:1000px){.workspace{grid-template-columns:1fr;}}
-  .panel{border:1px solid var(--edge);background:var(--bg2);border-radius:2px;display:flex;flex-direction:column;}
-  .panel-head{display:flex;align-items:center;justify-content:space-between;padding:5px 10px;
-              border-bottom:1px solid var(--edge);background:var(--bg3);font-size:10px;
-              letter-spacing:1px;color:var(--dim);text-transform:uppercase;}
-  table.grid{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;}
-  table.grid th{background:var(--bg3);color:var(--label);text-align:left;font-weight:600;font-size:9.5px;
-                letter-spacing:.6px;padding:6px 8px;border-bottom:1px solid var(--edge2);}
-  table.grid td{padding:6px 8px;border-bottom:1px solid #11161c;}
-  table.grid tr{border-left:2px solid transparent;}
-  table.grid tbody tr:hover{background:#121821;cursor:pointer;}
-  table.grid tbody tr.active{background:#15202c;border-left-color:var(--ok);}
-  table.grid tbody tr.sel{border-left-color:var(--info);}
-  .chiptag{display:inline-block;font-size:9.5px;letter-spacing:.4px;padding:0 6px;border:1px solid var(--edge2);
-           border-radius:2px;color:var(--dim);}
-  .chiptag.ok{color:var(--ok);border-color:#224b2c;} .chiptag.warn{color:var(--warn);border-color:#5a481b;}
-  .chiptag.info{color:var(--info);border-color:#1f3a5c;} .chiptag.off{color:var(--off);}
-  .run-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--off);margin-right:6px;vertical-align:middle;}
-  .run-dot.on{background:var(--ok);}
-  .op{font-family:var(--mono);font-size:11px;letter-spacing:.4px;cursor:pointer;padding:5px 12px;
-      border:1px solid var(--edge2);border-radius:2px;background:#161d26;color:var(--dim);text-transform:uppercase;}
-  .op.go{border-color:#285f3c;color:var(--ok);} .op.stop{border-color:#6b3322;color:var(--crit);}
-  .op:hover{color:var(--ink);} .op:disabled{opacity:.4;cursor:not-allowed;}
+/* ===== top bar ===== */
+.topbar{display:flex;align-items:stretch;background:var(--steel3);border-bottom:3px solid #11141 7;
+        border-bottom:3px solid #0e1114;}
+.brand{display:flex;flex-direction:column;justify-content:center;padding:8px 16px;border-right:1px solid var(--border);background:#171a1e;}
+.brand .name{font-weight:700;font-size:19px;letter-spacing:.06em;color:#eef2f5;}
+.brand .tag{font-size:12px;color:var(--dim);letter-spacing:.04em;}
+.tcells{display:flex;flex:1;}
+.tcell{display:flex;flex-direction:column;justify-content:center;gap:1px;padding:6px 16px;border-right:1px solid var(--border);min-width:120px;}
+.tcell .k{font-size:11px;letter-spacing:.1em;color:var(--label);text-transform:uppercase;font-weight:600;}
+.tcell .v{font-size:17px;font-weight:600;line-height:1.1;}
+.lamp{display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--stop);
+      box-shadow:0 0 0 1px #0008 inset;margin-right:7px;vertical-align:-1px;}
+.lamp.run{background:var(--run);} .lamp.warn{background:var(--warn);} .lamp.alarm{background:var(--alarm);}
+.estop{display:flex;align-items:center;}
+.estop button{height:100%;border:none;border-left:1px solid #0e1114;padding:0 22px;cursor:pointer;
+   font-family:var(--font-ui);font-weight:700;font-size:16px;letter-spacing:.08em;color:#3a0f0c;
+   background:linear-gradient(#e0463b,#b8352c);text-transform:uppercase;min-width:150px;}
+.estop button:hover{background:linear-gradient(#ec5247,#c43a30);}
+.estop button:active{box-shadow:inset 0 3px 6px #0007;}
+.estop button:disabled{background:linear-gradient(#5a4340,#4a3431);color:#8a6f6b;cursor:not-allowed;}
 
-  .detail{padding:0;}
-  .detail-body{padding:8px 10px;font-family:var(--mono);font-size:12px;}
-  .detail-body .empty{color:var(--off);padding:14px 4px;}
-  .detail-title{font-size:13px;color:var(--ink);font-weight:600;margin-bottom:8px;}
-  .kv{display:grid;grid-template-columns:96px 1fr;gap:3px 8px;}
-  .kv .k{color:var(--label);} .kv .val{color:var(--ink);word-break:break-all;}
+/* ===== layout ===== */
+.main{display:grid;grid-template-columns:1.35fr 1fr;gap:10px;padding:10px;}
+@media(max-width:1080px){.main{grid-template-columns:1fr;}}
+.panel{background:var(--steel);border:1px solid var(--border);display:flex;flex-direction:column;}
+.sec-head{display:flex;align-items:center;justify-content:space-between;background:var(--steel3);
+  border-bottom:2px solid var(--border-lt);padding:7px 12px;}
+.sec-head .title{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.09em;
+  font-size:13px;text-transform:uppercase;color:#c7ced4;}
+.sec-head .title::before{content:"";width:10px;height:14px;background:var(--border-lt);display:inline-block;}
+.sec-head .meta{font-family:var(--font-log);font-size:11.5px;color:var(--label);}
 
-  .logwrap{margin:0 8px 8px;}
-  .log{background:#06090c;border:1px solid var(--edge);border-radius:2px;height:240px;overflow:auto;
-       font-family:var(--mono);font-size:11.5px;color:#9fb0c0;padding:8px 10px;white-space:pre-wrap;line-height:1.45;}
-  .log .l-warn{color:var(--warn);} .log .l-err{color:var(--crit);}
-  .note{color:var(--label);font-size:11px;padding:0 10px 10px;}
+/* ===== deployment selector (control station) ===== */
+.deploys{padding:0;}
+.dep{display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;}
+.dep:hover{background:var(--steel2);}
+.dep.sel{background:#30373f;box-shadow:inset 4px 0 0 var(--ink);}
+.dep.active{box-shadow:inset 4px 0 0 var(--run);}
+.dep.sel.active{box-shadow:inset 4px 0 0 var(--run),inset 0 0 0 1px #ffffff14;}
+.dep-main .nm{font-size:18px;font-weight:600;color:#eef2f5;}
+.dep-tags{display:flex;flex-wrap:wrap;gap:6px;margin:5px 0;}
+.tag{font-size:12px;font-weight:600;letter-spacing:.04em;padding:1px 8px;border:1px solid var(--border-lt);
+     text-transform:uppercase;color:var(--dim);background:#1f242a;}
+.tag.proto{color:#cfd6dc;border-color:#5a646e;}
+.tag.mode{color:#bcd}
+.tag.sim{color:#8fb3c9;} .tag.ingest{color:#c9b48f;}
+.tag.hardened{color:#0e2415;background:var(--hardened);border-color:var(--hardened);}
+.tag.insecure{color:#2a1e06;background:var(--insecure);border-color:var(--insecure);}
+.dep-meta{font-family:var(--font-log);font-size:11.5px;color:var(--label);margin-top:3px;line-height:1.5;}
+.dep-meta b{color:var(--dim);font-weight:400;}
+.dep-status{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:8px;}
+.stxt{font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;}
+.stxt.run{color:var(--run);} .stxt.stop{color:var(--stop);}
+.dep-actions{display:flex;gap:6px;}
+
+/* ===== buttons (pressable) ===== */
+.btn{font-family:var(--font-ui);font-weight:600;font-size:13px;letter-spacing:.05em;text-transform:uppercase;
+  padding:6px 12px;border:1px solid var(--border-lt);border-top-color:#5e6872;border-bottom-color:#262c33;
+  background:linear-gradient(#363d45,#2a3037);color:var(--ink);cursor:pointer;
+  box-shadow:inset 0 1px 0 #ffffff0d;}
+.btn:hover{background:linear-gradient(#3d454e,#2f363d);}
+.btn:active{box-shadow:inset 0 2px 4px #0006;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn.start{color:#dff3e4;background:linear-gradient(#3a8a52,#2c6a3f);border-color:#49a861;border-top-color:#5cc077;}
+.btn.stop{color:#f6dedb;background:linear-gradient(#9a3a32,#7c2d27);border-color:#c0463b;border-top-color:#d4584d;}
+.btn.ghost{background:#23282e;}
+
+/* ===== detail panel ===== */
+.detail{padding:0;overflow:auto;}
+.empty{color:var(--label);padding:18px;}
+.det-title{font-size:21px;font-weight:700;color:#eef2f5;padding:10px 14px 4px;}
+.det-desc{color:var(--dim);padding:0 14px 10px;font-size:14px;}
+.field{display:grid;grid-template-columns:128px 1fr;gap:0;border-top:1px solid var(--border);}
+.field .fk{background:var(--steel3);color:var(--label);text-transform:uppercase;font-size:11.5px;
+  font-weight:600;letter-spacing:.06em;padding:7px 12px;border-right:1px solid var(--border);}
+.field .fv{padding:7px 12px;color:var(--ink);}
+.subhead{background:var(--steel2);border-top:2px solid var(--border-lt);padding:6px 12px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:#c7ced4;}
+/* health checks */
+.check{display:flex;align-items:center;gap:10px;padding:6px 12px;border-top:1px solid var(--border);}
+.check .ind{width:14px;height:14px;flex:0 0 14px;border:1px solid #0006;}
+.check .ind.ok{background:var(--run);} .check .ind.bad{background:var(--alarm);}
+.check .clab{flex:1;font-size:14px;}
+.check .cdet{font-family:var(--font-log);font-size:11.5px;color:var(--label);}
+/* warnings (alarm-first) */
+.warn{display:flex;gap:10px;padding:9px 12px;border-top:1px solid var(--border);background:#332617;
+  border-left:5px solid var(--warn);color:#f1d79a;font-size:14px;}
+.warn.crit{background:#3a201d;border-left-color:var(--alarm);color:#f0bbb4;}
+.warn .wic{font-weight:700;}
+
+/* ===== log ===== */
+.logbar{display:flex;align-items:center;gap:8px;}
+.logfilters{display:flex;gap:0;border:1px solid var(--border-lt);}
+.lf{font-family:var(--font-ui);font-weight:600;font-size:12px;letter-spacing:.05em;text-transform:uppercase;
+  padding:3px 11px;background:#23282e;color:var(--label);border:none;border-right:1px solid var(--border);cursor:pointer;}
+.lf:last-child{border-right:none;} .lf.on{background:var(--border-lt);color:#fff;}
+.logwrap{margin:0 10px 10px;}
+.log{font-family:var(--font-log);font-size:12px;line-height:1.5;background:#15181c;border:1px solid var(--border);
+  height:230px;overflow:auto;padding:8px 12px;color:#aeb7bf;white-space:pre-wrap;}
+.log .l-sys{color:#8fb3c9;} .log .l-err{color:#f08a80;} .log .l-warn{color:#e8c879;}
+.note{color:var(--label);font-size:13px;padding:0 12px 12px;}
 </style>
 </head>
 <body>
-<header class="statusbar">
-  <div class="sysid">
-    <span class="sysname">FREETASE2 SUITE // CONTROL CONSOLE</span>
-    <span class="syssub" id="sub">control plane &middot; select an operating mode and run it</span>
+<header class="topbar">
+  <div class="brand">
+    <span class="name">FREE TASE2 SUITE</span>
+    <span class="tag">Operations Launcher + ICCP/SCADA HMI Runtime</span>
   </div>
-  <div class="stats">
-    <div class="stat"><span class="k">STATE</span><span class="v" id="st-state">IDLE</span></div>
-    <div class="stat"><span class="k">DEPLOYMENT</span><span class="v" id="st-dep">--</span></div>
-    <div class="stat"><span class="k">MODE</span><span class="v" id="st-mode">--</span></div>
-    <div class="stat"><span class="k">PROFILE</span><span class="v" id="st-prof">--</span></div>
+  <div class="tcells">
+    <div class="tcell"><span class="k">Launcher</span><span class="v"><span class="lamp run"></span>ONLINE</span></div>
+    <div class="tcell"><span class="k">Runtime</span><span class="v" id="t-runtime"><span class="lamp" id="t-lamp"></span>STOPPED</span></div>
+    <div class="tcell"><span class="k">Active Deployment</span><span class="v" id="t-dep">--</span></div>
+    <div class="tcell"><span class="k">Protocol / Mode</span><span class="v" id="t-proto">--</span></div>
+    <div class="tcell"><span class="k">Security Profile</span><span class="v" id="t-prof">--</span></div>
+    <div class="tcell"><span class="k">System Time</span><span class="v mono" id="t-clock" style="font-size:15px">--:--:--</span></div>
   </div>
-  <div class="links">
-    <a id="hmi-link" class="off" href="#" target="_blank">SCADA HMI</a>
-    <a id="docs-link" href="/docs/" target="_blank">DOCS</a>
-  </div>
+  <div class="estop"><button id="estop" disabled>&#9632; STOP ALL</button></div>
 </header>
 
-<div class="workspace">
+<div class="main">
+  <!-- left: deployment / config selector -->
   <section class="panel">
-    <div class="panel-head"><span>DEPLOYMENTS</span><span id="dep-count" style="font-family:var(--mono)">0</span></div>
-    <table class="grid">
-      <thead><tr><th>STATUS</th><th>NAME</th><th>MODE</th><th>PROFILE</th><th>CONFIG</th><th>ACTION</th></tr></thead>
-      <tbody id="dep-body"></tbody>
-    </table>
+    <div class="sec-head"><span class="title">Deployment Control</span><span class="meta" id="dep-count">0 configured</span></div>
+    <div class="deploys" id="dep-list"></div>
   </section>
-  <aside class="panel detail">
-    <div class="panel-head"><span>DEPLOYMENT DETAIL</span></div>
-    <div id="detail" class="detail-body"><div class="empty">Select a deployment</div></div>
+
+  <!-- right: selected deployment detail -->
+  <aside class="panel detail" id="detail">
+    <div class="empty">Select a deployment to review its launch profile and pre-launch checks.</div>
   </aside>
 </div>
 
-<div class="logwrap">
-  <section class="panel">
-    <div class="panel-head"><span>DEPLOYMENT LOG</span><span id="log-state" style="font-family:var(--mono);color:var(--off)">idle</span></div>
-    <div class="log" id="log">no deployment running</div>
-  </section>
-</div>
-<p class="note">One deployment runs at a time (they share ports). Simulation mode connects to nothing; ingestion mode reaches real devices, so check the security profile and network segmentation first. Edit suite/profiles.json to add a deployment.</p>
+<!-- bottom: deployment log -->
+<section class="panel" style="margin:0 10px 4px;">
+  <div class="sec-head">
+    <span class="title">Deployment Log</span>
+    <span class="logbar">
+      <span class="logfilters" id="logfilters">
+        <button class="lf on" data-f="ALL">All</button>
+        <button class="lf" data-f="SYSTEM">System</button>
+        <button class="lf" data-f="RUNTIME">Runtime</button>
+        <button class="lf" data-f="ERROR">Error</button>
+      </span>
+      <span class="meta" id="log-state">idle</span>
+    </span>
+  </div>
+</section>
+<div class="logwrap"><div class="log" id="log">No deployment running.</div></div>
+<p class="note">One deployment runs at a time (shared ports). Simulation connects to nothing; ingestion reaches real devices per its tag database. Review the security profile and pre-launch warnings before starting.</p>
 
 <script>
 "use strict";
-let deps={}, status={running:false}, sel=null;
+let deps={}, status={running:false}, sel=null, logFilter="ALL";
 const $=id=>document.getElementById(id);
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 async function api(p,b){const o=b?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}:{};return (await fetch(p,o)).json();}
+function scriptFor(d){return d.mode==="simulation"?"scripts/50_run_hmi.sh":(d.dnp3_sim?"scripts/57_run_dnp3_demo.sh":"scripts/55_run_scada.sh");}
+function portsFor(d){const p=[`TASE.2 ${d.tase2_port||10502}`,`HMI ${d.http_port||8800}`];if(d.dnp3_sim)p.push("DNP3 20000");return p;}
 
-function renderTable(){
-  const entries=Object.entries(deps).filter(([k])=>k!=="_comment");
-  $("dep-count").textContent=entries.length;
-  $("dep-body").innerHTML=entries.map(([name,d])=>{
-    const active=status.running&&status.name===name;
-    const secCls=d.security==="hardened"?"ok":"warn";
-    return `<tr data-name="${esc(name)}" class="${active?"active ":""}${sel===name?"sel":""}">
-      <td><span class="run-dot ${active?"on":""}"></span>${active?'<span class="chiptag ok">RUNNING</span>':'<span class="chiptag off">STOPPED</span>'}</td>
-      <td>${esc(name)}</td>
-      <td><span class="chiptag info">${esc(d.mode||"?")}</span></td>
-      <td><span class="chiptag ${secCls}">${esc(d.security||"insecure")}</span></td>
-      <td style="color:var(--dim)">${esc((d.config||"").split("/").pop())}</td>
-      <td>${active?'<button class="op stop" data-stop="1">Stop</button>':`<button class="op go" data-start="${esc(name)}" ${status.running?"disabled":""}>Start</button>`}</td>
-    </tr>`;
-  }).join("");
-  $("dep-body").querySelectorAll("tr").forEach(tr=>tr.onclick=e=>{
-    if(e.target.closest("button"))return; sel=tr.dataset.name; renderTable(); renderDetail();
-  });
-  $("dep-body").querySelectorAll("button[data-start]").forEach(b=>b.onclick=async()=>{b.disabled=true;status=await api("/api/start",{name:b.dataset.start});await refresh();});
-  $("dep-body").querySelectorAll("button[data-stop]").forEach(b=>b.onclick=async()=>{b.disabled=true;status=await api("/api/stop",{});await refresh();});
-}
-function renderDetail(){
-  const d=deps[sel];
-  if(!d){$("detail").innerHTML='<div class="empty">Select a deployment</div>';return;}
-  const rows=[["name",sel],["mode",d.mode],["security",d.security||"insecure"],
-    ["config",d.config],["tags",d.tags||"(none)"],["HMI port",d.http_port||8800],
-    ["TASE.2 port",d.tase2_port||10502],["DNP3 sim",d.dnp3_sim?"yes":"no"]];
-  $("detail").innerHTML=`<div class="detail-title">${esc(sel)}</div>
-    <div style="color:var(--dim);margin-bottom:8px">${esc(d.description||"")}</div>
-    <div class="kv">${rows.map(r=>`<div class="k">${r[0]}</div><div class="val">${esc(r[1])}</div>`).join("")}</div>`;
-}
-function paintStatus(){
+function renderTop(){
   const r=status.running;
-  $("st-state").textContent=r?"RUNNING":"IDLE"; $("st-state").style.color=r?"var(--ok)":"var(--off)";
-  $("st-dep").textContent=r?status.name:"--";
-  $("st-mode").textContent=r?status.mode:"--";
-  $("st-prof").textContent=r?status.security:"--"; $("st-prof").style.color=r?(status.security==="hardened"?"var(--ok)":"var(--warn)"):"var(--ink)";
-  const hmi=$("hmi-link");
-  if(r&&status.http_port){hmi.href=`http://${location.hostname}:${status.http_port}/`;hmi.classList.remove("off");}
-  else hmi.classList.add("off");
-  const docs=$("docs-link"); docs.classList.toggle("off",!status.docs_available);
+  $("t-lamp").className="lamp "+(r?(status.security==="insecure"?"warn":"run"):"");
+  $("t-runtime").innerHTML=`<span class="lamp ${r?(status.security==="insecure"?"warn":"run"):""}" id="t-lamp"></span>${r?"RUNNING":"STOPPED"}`;
+  $("t-dep").textContent=r?status.name:"--";
+  $("t-proto").textContent=r?`${status.protocol||"--"} / ${status.mode||"--"}`:"--";
+  $("t-prof").innerHTML=r?`<span style="color:${status.security==="hardened"?"var(--hardened)":"var(--insecure)"}">${(status.security||"").toUpperCase()}</span>`:"--";
+  $("estop").disabled=!r;
+}
+function renderList(){
+  const entries=Object.entries(deps).filter(([k])=>k!=="_comment");
+  $("dep-count").textContent=entries.length+" configured";
+  $("dep-list").innerHTML=entries.map(([name,d])=>{
+    const active=status.running&&status.name===name;
+    return `<div class="dep ${sel===name?"sel ":""}${active?"active":""}" data-name="${esc(name)}">
+      <div class="dep-main">
+        <div class="nm">${esc(name)}</div>
+        <div class="dep-tags">
+          <span class="tag proto">${esc(d.protocol||"ICCP")}</span>
+          <span class="tag ${d.mode==="simulation"?"sim":"ingest"}">${esc(d.mode||"")}</span>
+          <span class="tag ${d.security}">${esc(d.security||"insecure")}</span>
+        </div>
+        <div class="dep-meta"><b>cfg</b> <span class="config-name">${esc((d.config||"").split("/").pop())}</span> &nbsp; <b>ports</b> <span class="port">${esc(portsFor(d).join(" · "))}</span></div>
+      </div>
+      <div class="dep-status">
+        <span class="stxt ${active?"run":"stop"}">${active?"&#9679; RUNNING":"&#9675; STOPPED"}</span>
+        <div class="dep-actions">
+          ${active
+            ? `<button class="btn stop" data-stop="1">Stop</button>`
+            : `<button class="btn start" data-start="${esc(name)}" ${status.running?"disabled":""}>Start</button>`}
+          <button class="btn ghost" data-logs="${esc(name)}">Logs</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+  $("dep-list").querySelectorAll(".dep").forEach(el=>el.onclick=e=>{
+    if(e.target.closest("button"))return; sel=el.dataset.name; renderList(); renderDetail();
+  });
+  $("dep-list").querySelectorAll("button[data-start]").forEach(b=>b.onclick=async()=>{b.disabled=true;status=await api("/api/start",{name:b.dataset.start});sel=b.dataset.start;await refresh();});
+  $("dep-list").querySelectorAll("button[data-stop]").forEach(b=>b.onclick=async()=>{b.disabled=true;status=await api("/api/stop",{});await refresh();});
+  $("dep-list").querySelectorAll("button[data-logs]").forEach(b=>b.onclick=()=>{sel=b.dataset.logs;renderList();renderDetail();$("log").scrollIntoView({behavior:"smooth"});});
+}
+async function renderDetail(){
+  const d=deps[sel];
+  if(!d){$("detail").innerHTML='<div class="empty">Select a deployment to review its launch profile and pre-launch checks.</div>';$("detail").dataset.key="";return;}
+  const active=status.running&&status.name===sel;
+  const key=sel+"|"+(active?1:0)+"|"+((status.name===sel&&status.last_run)||runs[sel]||"");
+  if($("detail").dataset.key===key)return;   // unchanged: skip refetch + rerender
+  $("detail").dataset.key=key;
+  const f=(k,v,mono)=>`<div class="field"><div class="fk">${k}</div><div class="fv ${mono?"mono":""}">${v}</div></div>`;
+  let html=`<div class="det-title">${esc(sel)}</div><div class="det-desc">${esc(d.description||"")}</div>`;
+  html+=f("Status",active?'<span style="color:var(--run);font-weight:700">RUNNING</span>':'<span style="color:var(--stop);font-weight:700">STOPPED</span>');
+  html+=f("Protocol",esc(d.protocol||"ICCP/MMS"));
+  html+=f("Mode",esc(d.mode||""));
+  html+=f("Profile",`<span style="color:${d.security==="hardened"?"var(--hardened)":"var(--insecure)"};font-weight:700">${esc((d.security||"").toUpperCase())}</span>`);
+  html+=f("Launch cmd",`<span class="script-path">python3 suite/tase2ctl.py run ${esc(sel)}</span>`,false);
+  html+=f("Script",`<span class="script-path">${esc(scriptFor(d))}</span>`);
+  html+=f("Config path",`<span class="config-name">${esc(d.config||"")}</span>`);
+  if(d.tags)html+=f("Tag database",`<span class="config-name">${esc(d.tags)}</span>`);
+  html+=f("Port bindings",`<span class="port">${esc(portsFor(d).join("   "))}</span>`);
+  html+=f("Last run",`<span class="mono">${esc((status.name===sel&&status.last_run)||(runs[sel])||"never")}</span>`);
+  html+=f("Documentation",`<a href="/docs/" target="_blank" style="color:#9fc0da">open docs &rarr;</a>`);
+
+  // pre-launch checks
+  const pc=await api("/api/precheck?name="+encodeURIComponent(sel));
+  html+=`<div class="subhead">Pre-launch Health Checks</div>`;
+  html+=pc.checks.map(c=>`<div class="check"><span class="ind ${c.ok?"ok":"bad"}"></span><span class="clab">${esc(c.label)}</span><span class="cdet">${esc(c.detail)}</span></div>`).join("");
+  if(pc.warnings.length){
+    html+=`<div class="subhead">Warnings Before Launch</div>`;
+    html+=pc.warnings.map(w=>{const crit=/INSECURE|INGESTION/.test(w);return `<div class="warn ${crit?"crit":""}"><span class="wic">&#9888;</span><span>${esc(w)}</span></div>`;}).join("");
+  }
+  $("detail").innerHTML=html;
+}
+function classifyLog(l){
+  if(/error|fail|denied|reject|exception/i.test(l))return"l-err";
+  if(/warn|stale|down|offline|notvalid/i.test(l))return"l-warn";
+  if(/^\[(scada|dnp3-demo|console)/i.test(l))return"l-sys";
+  return"";
+}
+function logType(l){
+  if(/error|fail|denied|reject|exception/i.test(l))return"ERROR";
+  if(/^\[(scada|dnp3-demo|console|dnp3-sim)/i.test(l))return"SYSTEM";
+  return"RUNTIME";
 }
 async function refreshLogs(){
-  if(!status.running){$("log").textContent="no deployment running";$("log-state").textContent="idle";return;}
-  const r=await api("/api/logs"); const lines=(r.lines||[]);
+  if(!status.running){$("log").textContent="No deployment running.";$("log-state").textContent="idle";return;}
+  const r=await api("/api/logs");let lines=r.lines||[];
+  if(logFilter!=="ALL")lines=lines.filter(l=>logType(l)===logFilter);
   $("log-state").textContent=lines.length+" lines";
-  $("log").innerHTML=lines.map(l=>{
-    const cls=/error|fail|denied|reject/i.test(l)?"l-err":/warn|stale|down|offline/i.test(l)?"l-warn":"";
-    return `<span class="${cls}">${esc(l)}</span>`;
-  }).join("\n");
+  $("log").innerHTML=lines.map(l=>`<span class="${classifyLog(l)}">${esc(l)}</span>`).join("\n")||"(no matching lines)";
   $("log").scrollTop=$("log").scrollHeight;
 }
-async function refresh(){ status=await api("/api/status"); paintStatus(); renderTable(); renderDetail(); refreshLogs(); }
-async function init(){ deps=await api("/api/deployments"); await refresh(); setInterval(refresh,2500); }
+let runs={};
+async function refresh(){ status=await api("/api/status"); runs=await api("/api/runs"); renderTop(); renderList(); renderDetail(); refreshLogs(); }
+function clock(){const d=new Date();$("t-clock").textContent=d.toTimeString().slice(0,8);}
+async function init(){
+  deps=await api("/api/deployments");
+  $("estop").onclick=async()=>{ if(confirm("STOP ALL: terminate the running deployment?")){status=await api("/api/stop",{});await refresh();} };
+  $("logfilters").querySelectorAll(".lf").forEach(b=>b.onclick=()=>{logFilter=b.dataset.f;$("logfilters").querySelectorAll(".lf").forEach(x=>x.classList.toggle("on",x===b));refreshLogs();});
+  clock(); setInterval(clock,1000);
+  await refresh(); setInterval(refresh,2500);
+}
 document.addEventListener("DOMContentLoaded",init);
 </script>
 </body>

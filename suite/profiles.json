@@ -1,10 +1,11 @@
 {
-  "_comment": "Named deployments for the unified tool. Each one selects an operating mode (simulation vs ingestion), a security profile (insecure vs hardened), a point model, and (for ingestion) a tag database. The control console and tase2ctl launch these by name. Add your own deployment here for a real testbed.",
+  "_comment": "Named deployments for the unified tool. Each one selects an operating mode (simulation vs ingestion), a southbound protocol, a security profile (insecure vs hardened), a point model, and (for ingestion) a tag database. The control console and tase2ctl launch these by name. Add your own deployment here for a real testbed. northbound is always TASE.2/ICCP over MMS.",
 
   "deployments": {
     "sim-demo": {
-      "description": "Simulation mode. Synthetic values from the server, connects to nothing. For training and capture.",
+      "description": "Simulation mode. Synthetic values from the server, connects to nothing. For training, capture, and parser/IDS testing.",
       "mode": "simulation",
+      "protocol": "ICCP/MMS",
       "security": "insecure",
       "config": "config/scada.json",
       "http_port": 8800,
@@ -12,8 +13,9 @@
     },
 
     "modbus-stub": {
-      "description": "Ingestion mode with stub Modbus devices. Full pipeline with no hardware; plc3 is offline on purpose.",
+      "description": "Ingestion mode with stub Modbus devices. Full pipeline with no hardware; station plc3 is offline on purpose to show a degraded state.",
       "mode": "ingestion",
+      "protocol": "Modbus TCP",
       "security": "insecure",
       "config": "config/scada.json",
       "tags": "ingest/tags.scada-demo.json",
@@ -24,6 +26,7 @@
     "dnp3-demo": {
       "description": "Ingestion mode over DNP3 with the bundled outstation simulator. No hardware needed.",
       "mode": "ingestion",
+      "protocol": "DNP3",
       "security": "insecure",
       "config": "config/scada.dnp3-demo.json",
       "tags": "ingest/tags.dnp3-demo.json",
@@ -35,6 +38,7 @@
     "hardened": {
       "description": "Ingestion mode, hardened. Mutual TLS (Secure ICCP) plus a loopback command allowlist. Run scripts/gen_certs.sh first.",
       "mode": "ingestion",
+      "protocol": "Modbus TCP",
       "security": "hardened",
       "config": "config/scada.json",
       "tags": "ingest/tags.scada-demo.json",

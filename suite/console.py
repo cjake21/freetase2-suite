@@ -12,6 +12,7 @@ packaged GUI builds on; the SCADA HMI itself remains the operational view.
 Standard library only. One deployment runs at a time (they share ports by default).
 """
 
+import datetime
 import json
 import os
 import signal
@@ -46,6 +47,7 @@ class Supervisor:
         self.proc = None
         self.name = None
         self._logf = None
+        self.runs = {}            # deployment name -> last start time (ISO)
         self.logpath = os.path.join(tempfile.gettempdir(), "freetase2-suite-deploy.log")
         self._lock = threading.Lock()
 
@@ -70,6 +72,8 @@ class Supervisor:
                 "http_port": dep.get("http_port", 8800) if running else None,
                 "mode": dep.get("mode") if running else None,
                 "security": dep.get("security") if running else None,
+                "protocol": dep.get("protocol") if running else None,
+                "last_run": self.runs.get(self.name) if running else None,
                 "docs_available": os.path.isdir(DOCS_HTML),
             }
 
@@ -84,6 +88,7 @@ class Supervisor:
                 stdout=self._logf, stderr=subprocess.STDOUT,
                 start_new_session=True)
             self.name = name
+            self.runs[name] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def stop(self):
         with self._lock:
@@ -107,6 +112,52 @@ class Supervisor:
 SUP = Supervisor()
 
 
+def precheck(name):
+    """Pre-launch health checks and warnings for a deployment, so the operator
+    knows what is unsafe or missing before pressing Start."""
+    deps = tase2ctl.load_profiles()
+    d = deps.get(name)
+    if d is None:
+        return {"checks": [], "warnings": ["unknown deployment"]}
+    R = tase2ctl.ROOT
+    checks = []
+
+    def add(label, ok, detail):
+        checks.append({"label": label, "ok": bool(ok), "detail": detail})
+
+    bins = all(os.path.isfile(os.path.join(R, "src", b))
+               for b in ("tase2_server", "tase2_hmi_agent"))
+    add("tools built", bins, "src/tase2_server" if bins else "run scripts/10_build.sh")
+    cfg = os.path.join(R, d["config"])
+    add("point model present", os.path.isfile(cfg), d["config"])
+    tags = None
+    if d.get("tags"):
+        tags = os.path.join(R, d["tags"])
+        add("tag database present", os.path.isfile(tags), d["tags"])
+    argv = ["python3", os.path.join(R, "scripts", "validate_config.py"), cfg]
+    if tags:
+        argv.append(tags)
+    try:
+        rc = subprocess.call(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        rc = 1
+    add("configuration valid", rc == 0, "validate_config.py")
+    if d.get("security") == "hardened":
+        certs = all(os.path.isfile(os.path.join(R, "certs", f)) for f in
+                    ("ca.crt", "server.crt", "server.key", "client.crt", "client.key"))
+        add("TLS certificates present", certs, "certs/  (run scripts/gen_certs.sh)")
+    add("documentation built", os.path.isdir(DOCS_HTML), "make -C docs html")
+
+    warnings = []
+    if d.get("security") == "insecure":
+        warnings.append("INSECURE PROFILE: plaintext ICCP and an open command path. Use only on a closed range.")
+    if d.get("mode") == "ingestion":
+        warnings.append("INGESTION MODE reaches real devices per the tag database. Verify network segmentation before launch.")
+    if d.get("dnp3_sim"):
+        warnings.append("DNP3 simulator will bind TCP 20000 locally for the demo outstation.")
+    return {"checks": checks, "warnings": warnings}
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -128,7 +179,13 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/status":
             return self._json(200, SUP.status())
         if path == "/api/logs":
-            return self._json(200, {"lines": SUP.tail(200)})
+            return self._json(200, {"lines": SUP.tail(300)})
+        if path == "/api/runs":
+            return self._json(200, SUP.runs)
+        if path == "/api/precheck":
+            from urllib.parse import parse_qs
+            q = parse_qs(urlparse(self.path).query)
+            return self._json(200, precheck((q.get("name") or [""])[0]))
         if path == "/docs" or path.startswith("/docs/"):
             return self._serve_docs(path)
         if path.startswith("/static/"):

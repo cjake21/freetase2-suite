@@ -16,6 +16,7 @@ import json
 import os
 import signal
 import subprocess
+import tempfile
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -44,7 +45,17 @@ class Supervisor:
     def __init__(self):
         self.proc = None
         self.name = None
+        self._logf = None
+        self.logpath = os.path.join(tempfile.gettempdir(), "freetase2-suite-deploy.log")
         self._lock = threading.Lock()
+
+    def tail(self, n=200):
+        try:
+            with open(self.logpath, "rb") as f:
+                data = f.read()
+        except OSError:
+            return []
+        return data.decode("utf-8", "replace").splitlines()[-n:]
 
     def status(self):
         with self._lock:
@@ -67,9 +78,10 @@ class Supervisor:
             if self.proc is not None and self.proc.poll() is None:
                 raise RuntimeError("a deployment is already running; stop it first")
             argv, env = tase2ctl.build_launch(name)
+            self._logf = open(self.logpath, "wb")
             self.proc = subprocess.Popen(
                 argv, env=env, cwd=tase2ctl.ROOT,
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                stdout=self._logf, stderr=subprocess.STDOUT,
                 start_new_session=True)
             self.name = name
 
@@ -85,6 +97,9 @@ class Supervisor:
                 self.proc.wait(timeout=6)
             except subprocess.TimeoutExpired:
                 self.proc.kill()
+            if self._logf:
+                self._logf.close()
+                self._logf = None
             self.proc = None
             self.name = None
 
@@ -112,6 +127,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, tase2ctl.load_profiles())
         if path == "/api/status":
             return self._json(200, SUP.status())
+        if path == "/api/logs":
+            return self._json(200, {"lines": SUP.tail(200)})
         if path == "/docs" or path.startswith("/docs/"):
             return self._serve_docs(path)
         if path.startswith("/static/"):

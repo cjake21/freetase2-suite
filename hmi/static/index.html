@@ -8,62 +8,95 @@
 </head>
 <body>
 
-<!-- 1. system header bar -->
-<header class="sysbar">
+<!-- status bar -->
+<header class="statusbar">
   <div class="sysid">
     <span class="sysname">FREETASE2 // ICCP SCADA</span>
-    <span class="syssub" id="sys-sub">DOMAIN -- &nbsp;|&nbsp; BLT -- &nbsp;|&nbsp; SES --</span>
+    <span class="syssub" id="sys-sub">domain -- · blt -- · session --</span>
   </div>
-  <div class="sysstatus">
-    <div class="st"><span class="k">LINK STATE</span><span class="v" id="st-link">OFFLINE</span></div>
-    <div class="st"><span class="k">STATIONS</span><span class="v" id="st-stations">0/0</span></div>
-    <div class="st"><span class="k">SCAN</span><span class="v" id="st-scan">HOLD</span></div>
-    <div class="st"><span class="k">LAST UPDATE</span><span class="v" id="st-upd">--:--:--Z</span></div>
-    <div class="st"><span class="k">UTC</span><span class="v" id="st-clock">--:--:--Z</span></div>
-    <div class="st"><span class="k">ALARMS</span><span class="v" id="st-alm">0</span></div>
+  <div class="stats">
+    <div class="stat"><span class="k">LINK</span><span class="v" id="st-link">OFFLINE</span></div>
+    <div class="stat"><span class="k">STATIONS</span><span class="v" id="st-stations">0/0</span></div>
+    <div class="stat"><span class="k">SCAN</span><span class="v" id="st-scan">HOLD</span></div>
+    <div class="stat"><span class="k">CRIT</span><span class="v sev-crit" id="st-crit">0</span></div>
+    <div class="stat"><span class="k">WARN</span><span class="v sev-warn" id="st-warn">0</span></div>
+    <div class="stat"><span class="k">LAST RPT</span><span class="v" id="st-rpt">--:--:--</span></div>
+    <div class="stat"><span class="k">UTC</span><span class="v" id="st-clock">--:--:--</span></div>
   </div>
 </header>
 
-<!-- 2. alarm / status strip -->
-<section class="alarmstrip">
-  <div class="bar-head">
-    <span>ALARM SUMMARY</span>
-    <button class="op" id="ackbtn">ACKNOWLEDGE</button>
+<!-- filter / toolbar -->
+<div class="toolbar">
+  <input type="text" id="flt-search" class="inp" placeholder="filter points (name, label, station)">
+  <select id="flt-station" class="inp"></select>
+  <select id="flt-quality" class="inp">
+    <option value="">quality: any</option>
+    <option value="good">GOOD</option>
+    <option value="bad">NOT GOOD</option>
+  </select>
+  <label class="chk"><input type="checkbox" id="flt-ctl"> controllable only</label>
+  <span class="spacer"></span>
+  <span class="count" id="pt-count">0 points</span>
+</div>
+
+<!-- main workspace: points table + side panel -->
+<div class="workspace">
+  <section class="panel points">
+    <div class="panel-head"><span>POINTS</span><span class="hint">click a row for detail and controls</span></div>
+    <div class="table-wrap">
+      <table class="grid">
+        <thead>
+          <tr>
+            <th data-sort="station">STATION</th>
+            <th data-sort="name">POINT</th>
+            <th data-sort="label">DESCRIPTION</th>
+            <th data-sort="value" class="num">VALUE</th>
+            <th data-sort="quality">QUALITY</th>
+            <th data-sort="control">CTL</th>
+            <th data-sort="age" class="num">AGE</th>
+          </tr>
+        </thead>
+        <tbody id="pts-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside class="side">
+    <section class="panel detail">
+      <div class="panel-head"><span>POINT DETAIL</span></div>
+      <div id="detail" class="detail-body"><div class="empty">No point selected</div></div>
+    </section>
+    <section class="panel alarms">
+      <div class="panel-head"><span>ACTIVE ALARMS</span><button class="btn" id="ackbtn">ACK ALL</button></div>
+      <div class="table-wrap">
+        <table class="grid">
+          <thead><tr><th>SEV</th><th>ID</th><th>CONDITION</th><th>VALUE</th><th>STATE</th></tr></thead>
+          <tbody id="alarm-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<!-- event timeline -->
+<section class="panel events">
+  <div class="panel-head">
+    <span>EVENT LOG</span>
+    <span class="evfilters" id="evfilters">
+      <button class="chip on" data-ev="ALL">ALL</button>
+      <button class="chip" data-ev="ALM">ALM</button>
+      <button class="chip" data-ev="CMD">CMD</button>
+      <button class="chip" data-ev="RX">RX</button>
+      <button class="chip" data-ev="SYS">SYS</button>
+    </span>
   </div>
-  <div class="alarm-rows" id="alarm-rows"></div>
-</section>
-
-<!-- 3. dynamic station grid (one card per configured PLC/feed) -->
-<section class="grid-head">
-  <span>STATION OVERVIEW</span>
-  <span class="grid-sub" id="grid-sub">-- STATIONS</span>
-</section>
-<div class="station-grid" id="station-grid"></div>
-
-<!-- 4. event / report strip -->
-<section class="events">
-  <div class="bar-head"><span>EVENT LOG</span></div>
-  <div class="event-rows" id="event-rows"></div>
-</section>
-
-<!-- 5. collapsible reference / system notes -->
-<details class="reference">
-  <summary>REFERENCE / SYSTEM NOTES</summary>
-  <p class="ref-note">
-    Each station card is one PLC/feed declared in config/scada.json. Point values
-    are what the neighboring station receives over TASE.2 / ICCP Block 2 reports;
-    a station reads ONLINE while fresh report data arrives for its points and
-    OFFLINE when that data goes stale. Object model exchanged:
-  </p>
-  <div class="ref-grid">
-    <div><span class="k">PROTOCOL VERSION</span><span class="v" id="i-version">--</span></div>
-    <div><span class="k">SUPPORTED FEATURES</span><span class="v" id="i-features">--</span></div>
-    <div><span class="k">BILATERAL TABLE ID</span><span class="v" id="i-blt">--</span></div>
-    <div><span class="k">NEXT TRANSFER SET</span><span class="v" id="i-next">--</span></div>
-    <div><span class="k">DATA SET</span><span class="v" id="i-dataset">--</span></div>
-    <div><span class="k">TRANSFER SET</span><span class="v" id="i-ts">--</span></div>
+  <div class="table-wrap log">
+    <table class="grid">
+      <thead><tr><th>TIME</th><th>SEV</th><th>TYPE</th><th>EVENT</th></tr></thead>
+      <tbody id="event-body"></tbody>
+    </table>
   </div>
-</details>
+</section>
 
 <script src="/static/hmi.js"></script>
 </body>

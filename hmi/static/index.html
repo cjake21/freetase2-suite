@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FREE TASE2 SUITE - ICCP/SCADA HMI</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/hmi.css">
 </head>
 <body>
@@ -29,8 +27,11 @@
   <div class="hblock"><div class="hk">UTC</div><div class="hv num" id="hb-clock" style="font-size:17px">--:--:--</div></div>
 </header>
 
-<!-- station mimic strip -->
-<section class="mimic" id="mimic"></section>
+<!-- communication / mimic bus -->
+<section class="busbar">
+  <div class="bus-head">Process Bus &middot; ICCP Gateway</div>
+  <div class="bus" id="mimic"></div>
+</section>
 
 <!-- active alarm rail (priority) -->
 <section class="alarmrail" id="alarmrail"></section>

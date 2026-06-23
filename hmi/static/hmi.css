@@ -1,8 +1,8 @@
 /* FREE TASE2 SUITE - ICCP/SCADA HMI. Industrial substation operations panel:
    warm graphite, equipment-slot rows, lamps, alarm rails, control bays. */
 :root{
-  --font-ui:"IBM Plex Sans Condensed","Aptos Narrow","Arial Narrow","Helvetica Neue Condensed",sans-serif;
-  --font-num:"IBM Plex Mono","JetBrains Mono","Consolas",monospace;
+  --font-ui:"Bahnschrift","DIN Alternate","Aptos Narrow","Arial Narrow",sans-serif;
+  --font-num:"Cascadia Mono","IBM Plex Mono","Consolas",monospace;
   --bg-main:#1f2423; --bg-panel:#292f2e; --bg-panel-deep:#191d1c; --bg-slot:#303735;
   --line-hard:#56615e; --line-soft:#3d4643;
   --text-main:#e5e1d6; --text-muted:#9ba69f; --text-dim:#68746f;
@@ -39,7 +39,39 @@ body{background:var(--bg-main);color:var(--text-main);font-family:var(--font-ui)
 @keyframes blink{50%{box-shadow:0 0 2px #d64a3640,inset 0 0 2px #fff3;}}
 .sev-ok{color:var(--run);} .sev-warn{color:var(--warn);} .sev-crit{color:var(--crit);} .sev-off{color:var(--stop);}
 
-/* ===== station mimic strip ===== */
+/* ===== communication / mimic bus ===== */
+.busbar{background:var(--bg-panel-deep);border-bottom:2px solid #0d100f;}
+.bus-head{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);
+  padding:5px 14px;border-bottom:1px solid var(--line-soft);background:#1c211f;}
+.bus{display:flex;align-items:stretch;padding:12px 14px 14px;}
+.bus-gw{display:flex;align-items:center;gap:10px;padding:10px 16px;flex:0 0 auto;align-self:center;
+  background:linear-gradient(180deg,#241009,#19120f);border:1px solid var(--line-hard);
+  box-shadow:inset 0 1px 0 #ffffff10,0 2px 4px #0006;}
+.bus-gw .gw-t{font-weight:700;font-size:16px;letter-spacing:.05em;color:#f1ece0;}
+.bus-gw .gw-s{font-family:var(--font-num);font-size:11px;color:var(--text-dim);}
+.bus-lead{flex:0 0 26px;align-self:center;height:4px;background:linear-gradient(90deg,#5a655f,#3a4340);box-shadow:0 0 0 1px #000;}
+.bus-track{flex:1;position:relative;display:flex;align-items:flex-start;min-width:0;}
+.bus-track .trunk{position:absolute;left:0;right:0;top:9px;height:4px;
+  background:linear-gradient(180deg,#6a756f,#3a4340);box-shadow:0 0 0 1px #000,0 1px 0 #ffffff12;}
+.tap{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0;padding:0 5px;}
+.tap .dot{width:13px;height:13px;border-radius:50%;margin-top:3px;z-index:2;border:1px solid #0c0f0e;
+  background:#141817;box-shadow:inset 0 0 3px #000;}
+.tap .dot.run{background:radial-gradient(circle at 35% 30%,#9be8ad,#2f9c4f);box-shadow:0 0 7px #4fb36a;}
+.tap .dot.warn{background:radial-gradient(circle at 35% 30%,#f1cf7a,#b9851d);box-shadow:0 0 7px #d8a22a;}
+.tap .dot.crit{background:radial-gradient(circle at 35% 30%,#f3a294,#b53322);box-shadow:0 0 8px #d64a36;}
+.tap .leg{width:3px;height:20px;background:var(--line-hard);}
+.tap.off .leg{width:0;border-left:3px dashed #7a3a32;background:transparent;}
+.bnode{width:100%;text-align:center;border:1px solid var(--line-soft);background:linear-gradient(180deg,#2a302e,#222827);
+  padding:7px 6px;box-shadow:inset 0 1px 0 #ffffff07;}
+.tap.on .bnode{border-color:#3f6a4d;background:linear-gradient(180deg,#26332b,#202b24);}
+.tap.crit .bnode{border-color:#6a352c;background:linear-gradient(180deg,#33211d,#291a17);}
+.tap.off .bnode{opacity:.6;}
+.bnode .bn-id{font-size:15px;font-weight:700;letter-spacing:.04em;color:#f1ece0;}
+.bnode .bn-nm{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bnode .bn-st{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:3px;}
+
+/* (legacy station mimic strip, unused) */
 .mimic{display:flex;gap:0;background:var(--bg-panel-deep);border-bottom:2px solid #0d100f;padding:0;overflow-x:auto;}
 .mst{flex:1 0 150px;display:grid;grid-template-columns:7px 1fr;border-right:1px solid var(--line-soft);
   background:linear-gradient(180deg,#2a302e,#232827);}

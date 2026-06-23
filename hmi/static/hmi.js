@@ -69,21 +69,26 @@ function render(){
 }
 function setT(id,txt,cls){ const e=$(id); if(e){ e.textContent=txt; if(cls)e.className="num "+cls; } }
 
-// ---- mimic strip ----------------------------------------------------------
+// ---- communication / mimic bus --------------------------------------------
 function renderMimic(stations){
-  $("mimic").innerHTML=stations.map(st=>{
+  const gwOn=!!(state.online&&state.online.B);
+  const srv=state.server||{};
+  let h=`<div class="bus-gw"><span class="lamp ${gwOn?"run":"crit"}"></span>
+    <div><div class="gw-t">ICCP GATEWAY</div><div class="gw-s">${esc(srv.domain||"")} &middot; ${esc(srv.host||"")}:${esc(srv.port||"")}</div></div></div>
+    <div class="bus-lead"></div>
+    <div class="bus-track"><div class="trunk"></div>`;
+  h+=stations.map(st=>{
     const s=stationSev(st);
-    const cls=s==="crit"?"crit":s==="warn"?"warn":st.online?"on":"";
+    const tapcls=st.online?(s==="crit"?"crit":s==="warn"?"warn":"on"):"off";
     const lamp=s==="crit"?"crit":s==="warn"?"warn":st.online?"run":"";
     const stxt=st.online?(s==="crit"?"ALARM":s==="warn"?"DEGRADED":"ONLINE"):"OFFLINE";
     const col=s==="crit"?"var(--crit)":s==="warn"?"var(--warn)":st.online?"var(--run)":"var(--stop)";
-    return `<div class="mst ${cls}"><div class="mrail"></div><div class="mst-b">
-      <div class="mst-id"><span class="lamp ${lamp}"></span>${esc(st.id.toUpperCase())}</div>
-      <div class="mst-nm">${esc(st.name)}</div>
-      <div class="mst-sum">${st.points.length} pts</div>
-      <div class="mst-st" style="color:${col}">${stxt}</div>
-    </div></div>`;
+    return `<div class="tap ${tapcls}"><span class="dot ${lamp}"></span><span class="leg"></span>
+      <div class="bnode"><div class="bn-id">${esc(st.id.toUpperCase())}</div><div class="bn-nm">${esc(st.name)}</div>
+      <div class="bn-st" style="color:${col}">${stxt}</div></div></div>`;
   }).join("");
+  h+=`</div>`;
+  $("mimic").innerHTML=h;
 }
 
 // ---- active alarm rail (priority banner) ----------------------------------

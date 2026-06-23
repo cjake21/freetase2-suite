@@ -173,9 +173,13 @@ forms:
    the operate buttons appear. The server enforces this: an operate without a
    current selection from the same client is rejected.
 
+For a setpoint, type the value and press SEND in one action; the field keeps what
+you type while you are editing it, even as live reports refresh the panel.
+
 After you operate, the command travels to the device and the read-back returns over
-ICCP, so the point's value updates within a few seconds. See
-{doc}`tase2-on-the-wire` for exactly what happens on the wire.
+ICCP, so the point's value updates within a few seconds. For a step-by-step
+walkthrough of each control type against the `field-demo` points, see
+{doc}`hmi-demo`. See {doc}`tase2-on-the-wire` for exactly what happens on the wire.
 
 ### Alarms
 

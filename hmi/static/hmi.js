@@ -170,7 +170,14 @@ function renderDetail(pts){
     h+=`<div class="cmdmod"><div class="cmd-hd"><span>Operator Command</span><span class="arm">${armed?("ARMED "+p.armed+"s"):""}</span></div>
         <div class="cmd-row">${commandControls(p)}</div></div>`;
   }
+  // Live reports re-render this panel ~1/s. Preserve an in-progress setpoint
+  // entry (value, focus, caret) across the rebuild so a report landing between
+  // the operator typing and pressing Send does not wipe the field.
+  const prev=$("sp-in");
+  const keep=prev?{v:prev.value,f:document.activeElement===prev,s:prev.selectionStart,e:prev.selectionEnd}:null;
   host.innerHTML=h;
+  const now=$("sp-in");
+  if(now&&keep){ now.value=keep.v; if(keep.f){ now.focus(); try{now.setSelectionRange(keep.s,keep.e);}catch(_){} } }
   wireDetail(p);
 }
 function commandControls(p){

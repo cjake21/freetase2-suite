@@ -468,9 +468,21 @@ main(int argc, char** argv)
         struct timeval tv = { .tv_sec = 0, .tv_usec = 150000 };
         int r = select(STDIN_FILENO + 1, &rfds, NULL, NULL, &tv);
         if (r > 0 && FD_ISSET(STDIN_FILENO, &rfds)) {
-            if (fgets(line, sizeof(line), stdin) == NULL) break; /* EOF: bridge closed */
-            chomp(line);
-            handleCommand(con, line);
+            /* Drain every command queued this wake-up rather than one per loop.
+             * The gateway emits a burst (one WRITEQ per point plus control reads)
+             * each poll; processing only one per iteration lets that burst build
+             * an ever-growing backlog, so values lag the field by many seconds.
+             * Draining keeps the read-back current. */
+            do {
+                if (fgets(line, sizeof(line), stdin) == NULL) { g_running = 0; break; } /* EOF: bridge closed */
+                chomp(line);
+                handleCommand(con, line);
+                FD_ZERO(&rfds);
+                FD_SET(STDIN_FILENO, &rfds);
+                tv.tv_sec = 0; tv.tv_usec = 0;   /* poll: is another command already waiting? */
+            } while (g_running &&
+                     select(STDIN_FILENO + 1, &rfds, NULL, NULL, &tv) > 0 &&
+                     FD_ISSET(STDIN_FILENO, &rfds));
         }
     }
 

@@ -3,286 +3,311 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FREE TASE2 SUITE // Operations Launcher</title>
+<title>FREE TASE2 SUITE - Deployment Controller</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Roboto+Condensed:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --font-ui:"Barlow Semi Condensed","Roboto Condensed","DIN Condensed","Arial Narrow",Arial,sans-serif;
-  --font-log:"JetBrains Mono","Roboto Mono","Consolas",monospace;
-  --graphite:#1b1e22; --steel:#262b31; --steel2:#2d333a; --steel3:#20252b;
-  --border:#3c444d; --border-lt:#525c66;
-  --ink:#dce1e6; --dim:#9aa3ac; --label:#79838d;
-  --run:#49b35f; --stop:#737d87; --warn:#e0a32b; --alarm:#e0463b; --info:#cfd6dc;
-  --hardened:#49b35f; --insecure:#e0a32b;
+  --font-ui:"IBM Plex Sans Condensed","Aptos Narrow","Arial Narrow","Helvetica Neue Condensed",sans-serif;
+  --font-num:"IBM Plex Mono","JetBrains Mono","Consolas",monospace;
+  --bg-main:#1f2423; --bg-panel:#292f2e; --bg-panel-deep:#191d1c; --bg-slot:#303735;
+  --line-hard:#56615e; --line-soft:#3d4643;
+  --text-main:#e5e1d6; --text-muted:#9ba69f; --text-dim:#68746f;
+  --run:#4fb36a; --warn:#d8a22a; --crit:#d64a36; --stop:#7d8581; --control:#6d94a8;
+  --alarm-bg:#3a201d; --warn-bg:#332b19; --active-bg:#26352d;
 }
 *{box-sizing:border-box;}
 html,body{margin:0;height:100%;}
-body{font-family:var(--font-ui);letter-spacing:.015em;font-size:15px;color:var(--ink);
-     background:var(--graphite);display:flex;flex-direction:column;min-height:100vh;}
-.mono,.config-name,.script-path,.port,.raw-event{font-family:var(--font-log);font-size:12.5px;}
+body{background:var(--bg-main);color:var(--text-main);font-family:var(--font-ui);
+  letter-spacing:.01em;font-size:15px;display:flex;flex-direction:column;min-height:100vh;}
+.num,.timestamp,.port,.path,.script,.value-raw,.log{font-family:var(--font-num);}
 
-/* ===== top bar ===== */
-.topbar{display:flex;align-items:stretch;background:var(--steel3);border-bottom:3px solid #11141 7;
-        border-bottom:3px solid #0e1114;}
-.brand{display:flex;flex-direction:column;justify-content:center;padding:8px 16px;border-right:1px solid var(--border);background:#171a1e;}
-.brand .name{font-weight:700;font-size:19px;letter-spacing:.06em;color:#eef2f5;}
-.brand .tag{font-size:12px;color:var(--dim);letter-spacing:.04em;}
-.tcells{display:flex;flex:1;}
-.tcell{display:flex;flex-direction:column;justify-content:center;gap:1px;padding:6px 16px;border-right:1px solid var(--border);min-width:120px;}
-.tcell .k{font-size:11px;letter-spacing:.1em;color:var(--label);text-transform:uppercase;font-weight:600;}
-.tcell .v{font-size:17px;font-weight:600;line-height:1.1;}
-.lamp{display:inline-block;width:11px;height:11px;border-radius:50%;background:var(--stop);
-      box-shadow:0 0 0 1px #0008 inset;margin-right:7px;vertical-align:-1px;}
-.lamp.run{background:var(--run);} .lamp.warn{background:var(--warn);} .lamp.alarm{background:var(--alarm);}
-.estop{display:flex;align-items:center;}
-.estop button{height:100%;border:none;border-left:1px solid #0e1114;padding:0 22px;cursor:pointer;
-   font-family:var(--font-ui);font-weight:700;font-size:16px;letter-spacing:.08em;color:#3a0f0c;
-   background:linear-gradient(#e0463b,#b8352c);text-transform:uppercase;min-width:150px;}
-.estop button:hover{background:linear-gradient(#ec5247,#c43a30);}
-.estop button:active{box-shadow:inset 0 3px 6px #0007;}
-.estop button:disabled{background:linear-gradient(#5a4340,#4a3431);color:#8a6f6b;cursor:not-allowed;}
+/* ===== appliance header ===== */
+.appliance{display:flex;align-items:stretch;background:linear-gradient(180deg,#2b302f,#222726);
+  border-bottom:2px solid #0d100f;box-shadow:inset 0 1px 0 #ffffff10,0 2px 4px #0006;}
+.nameplate{display:flex;flex-direction:column;justify-content:center;padding:10px 18px;
+  background:linear-gradient(180deg,#21100c,#1a1513);border-right:2px solid #0d100f;
+  box-shadow:inset 0 0 0 1px #00000040;}
+.nameplate .pn{font-weight:700;font-size:20px;letter-spacing:.08em;color:#f1ece0;
+  text-shadow:0 1px 0 #000;}
+.nameplate .ps{font-size:11px;letter-spacing:.18em;color:var(--warn);text-transform:uppercase;}
+.hblock{display:flex;flex-direction:column;justify-content:center;gap:3px;padding:8px 18px;
+  border-right:1px solid var(--line-soft);box-shadow:inset 1px 0 0 #ffffff08;min-width:150px;}
+.hblock .hk{font-size:10px;letter-spacing:.16em;color:var(--text-dim);text-transform:uppercase;}
+.hblock .hv{font-size:20px;font-weight:600;line-height:1;display:flex;align-items:center;gap:9px;}
+.hblock.state .hv{font-size:23px;}
+.hsp{flex:1;}
+.hbtns{display:flex;align-items:center;gap:8px;padding:0 14px;border-left:1px solid var(--line-soft);}
+.linkbtn{font-family:var(--font-ui);font-size:13px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--text-muted);text-decoration:none;padding:7px 12px;border:1px solid var(--line-hard);
+  background:linear-gradient(#333a38,#272d2c);box-shadow:inset 0 1px 0 #ffffff0c;}
+.linkbtn:hover{color:var(--text-main);border-color:#7a857f;}
+.linkbtn.off{opacity:.35;pointer-events:none;}
+/* guarded STOP ALL command area */
+.estop{display:flex;align-items:center;padding:0;border-left:2px solid #0d100f;
+  background:repeating-linear-gradient(45deg,#2a201a,#2a201a 9px,#241b16 9px,#241b16 18px);}
+.estop button{height:100%;min-width:172px;border:none;border-left:3px solid #6a1f17;cursor:pointer;
+  font-family:var(--font-ui);font-weight:700;font-size:17px;letter-spacing:.1em;text-transform:uppercase;
+  color:#fff0ec;background:linear-gradient(180deg,#d64a36,#a5392a);text-shadow:0 1px 0 #00000060;
+  box-shadow:inset 0 1px 0 #ffffff25,inset 0 -3px 6px #00000050;padding:0 18px;}
+.estop button:hover{background:linear-gradient(180deg,#e2543f,#b13c2d);}
+.estop button:active{box-shadow:inset 0 3px 7px #00000070;}
+.estop button:disabled{background:linear-gradient(180deg,#4a3d39,#3c322f);color:#8a7a75;
+  border-left-color:#3a302d;box-shadow:inset 0 1px 0 #ffffff08;cursor:not-allowed;}
+
+/* lamps */
+.lamp{width:13px;height:13px;border-radius:50%;background:#1a1f1d;
+  box-shadow:inset 0 0 3px #000,inset 0 1px 1px #00000080;border:1px solid #0c0f0e;display:inline-block;}
+.lamp.run{background:radial-gradient(circle at 35% 30%,#9be8ad,#2f9c4f);box-shadow:0 0 7px #4fb36a99,inset 0 0 2px #fff6;}
+.lamp.warn{background:radial-gradient(circle at 35% 30%,#f1cf7a,#b9851d);box-shadow:0 0 7px #d8a22a99,inset 0 0 2px #fff6;}
+.lamp.crit{background:radial-gradient(circle at 35% 30%,#f3a294,#b53322);box-shadow:0 0 8px #d64a36aa,inset 0 0 2px #fff6;}
 
 /* ===== layout ===== */
-.main{display:grid;grid-template-columns:1.35fr 1fr;gap:10px;padding:10px;}
-@media(max-width:1080px){.main{grid-template-columns:1fr;}}
-.panel{background:var(--steel);border:1px solid var(--border);display:flex;flex-direction:column;}
-.sec-head{display:flex;align-items:center;justify-content:space-between;background:var(--steel3);
-  border-bottom:2px solid var(--border-lt);padding:7px 12px;}
-.sec-head .title{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:.09em;
-  font-size:13px;text-transform:uppercase;color:#c7ced4;}
-.sec-head .title::before{content:"";width:10px;height:14px;background:var(--border-lt);display:inline-block;}
-.sec-head .meta{font-family:var(--font-log);font-size:11.5px;color:var(--label);}
+.bay{display:grid;grid-template-columns:1.25fr 1fr;gap:0;flex:1;min-height:0;border-bottom:2px solid #0d100f;}
+@media(max-width:1024px){.bay{grid-template-columns:1fr;}}
+.rack{background:var(--bg-panel-deep);border-right:2px solid #0d100f;overflow:auto;padding:10px;}
+.control-bay{background:var(--bg-panel);overflow:auto;}
+.seclabel{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);
+  padding:4px 4px 10px;display:flex;justify-content:space-between;}
 
-/* ===== deployment selector (control station) ===== */
-.deploys{padding:0;}
-.dep{display:grid;grid-template-columns:1fr auto;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;}
-.dep:hover{background:var(--steel2);}
-.dep.sel{background:#30373f;box-shadow:inset 4px 0 0 var(--ink);}
-.dep.active{box-shadow:inset 4px 0 0 var(--run);}
-.dep.sel.active{box-shadow:inset 4px 0 0 var(--run),inset 0 0 0 1px #ffffff14;}
-.dep-main .nm{font-size:18px;font-weight:600;color:#eef2f5;}
-.dep-tags{display:flex;flex-wrap:wrap;gap:6px;margin:5px 0;}
-.tag{font-size:12px;font-weight:600;letter-spacing:.04em;padding:1px 8px;border:1px solid var(--border-lt);
-     text-transform:uppercase;color:var(--dim);background:#1f242a;}
-.tag.proto{color:#cfd6dc;border-color:#5a646e;}
-.tag.mode{color:#bcd}
-.tag.sim{color:#8fb3c9;} .tag.ingest{color:#c9b48f;}
-.tag.hardened{color:#0e2415;background:var(--hardened);border-color:var(--hardened);}
-.tag.insecure{color:#2a1e06;background:var(--insecure);border-color:var(--insecure);}
-.dep-meta{font-family:var(--font-log);font-size:11.5px;color:var(--label);margin-top:3px;line-height:1.5;}
-.dep-meta b{color:var(--dim);font-weight:400;}
-.dep-status{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:8px;}
-.stxt{font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;}
-.stxt.run{color:var(--run);} .stxt.stop{color:var(--stop);}
-.dep-actions{display:flex;gap:6px;}
+/* ===== deployment rack modules ===== */
+.module{display:grid;grid-template-columns:8px 1fr auto;margin-bottom:10px;
+  background:linear-gradient(180deg,#2e3533,#272d2c);border:1px solid var(--line-soft);
+  box-shadow:inset 0 1px 0 #ffffff08,0 1px 3px #0005;}
+.module .rail{background:#23110d;box-shadow:inset -1px 0 0 #00000060;}
+.module.energized{border-color:#3f6a4d;box-shadow:inset 0 1px 0 #ffffff12,0 0 0 1px #4fb36a30,0 2px 6px #0006;}
+.module.energized .rail{background:linear-gradient(180deg,#6ee08a,#2f9c4f);box-shadow:0 0 8px #4fb36a88;}
+.module.energized{background:linear-gradient(180deg,#2c3a32,#243029);}
+.mod-body{padding:11px 14px;min-width:0;}
+.mod-top{display:flex;align-items:center;gap:11px;}
+.mod-name{font-size:19px;font-weight:700;letter-spacing:.03em;color:#f1ece0;}
+.mod-state{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  padding:2px 8px;border:1px solid var(--line-hard);color:var(--text-dim);background:#1c2120;}
+.mod-state.on{color:#cfeed7;border-color:#3f6a4d;background:#1f3127;}
+/* engraved label plates instead of pills */
+.plates{display:flex;flex-wrap:wrap;gap:7px;margin:9px 0 7px;}
+.plate{font-size:12px;letter-spacing:.05em;color:var(--text-muted);padding:2px 9px;
+  background:var(--bg-panel-deep);border:1px solid var(--line-soft);
+  box-shadow:inset 0 1px 1px #00000050;text-transform:uppercase;}
+.plate b{color:var(--text-dim);font-weight:400;margin-right:5px;}
+.plate.hardened{color:#bfe6c9;border-color:#3f6a4d;}
+.plate.insecure{color:#e9cf94;border-color:#6a5a2b;}
+.mod-meta{font-family:var(--font-num);font-size:12px;color:var(--text-dim);line-height:1.6;}
+.mod-meta b{color:var(--text-muted);font-weight:500;}
+.mod-ctrls{display:flex;flex-direction:column;justify-content:center;gap:7px;padding:11px 12px;
+  border-left:1px solid var(--line-soft);background:#00000018;}
 
-/* ===== buttons (pressable) ===== */
-.btn{font-family:var(--font-ui);font-weight:600;font-size:13px;letter-spacing:.05em;text-transform:uppercase;
-  padding:6px 12px;border:1px solid var(--border-lt);border-top-color:#5e6872;border-bottom-color:#262c33;
-  background:linear-gradient(#363d45,#2a3037);color:var(--ink);cursor:pointer;
-  box-shadow:inset 0 1px 0 #ffffff0d;}
-.btn:hover{background:linear-gradient(#3d454e,#2f363d);}
-.btn:active{box-shadow:inset 0 2px 4px #0006;}
-.btn:disabled{opacity:.4;cursor:not-allowed;}
-.btn.start{color:#dff3e4;background:linear-gradient(#3a8a52,#2c6a3f);border-color:#49a861;border-top-color:#5cc077;}
-.btn.stop{color:#f6dedb;background:linear-gradient(#9a3a32,#7c2d27);border-color:#c0463b;border-top-color:#d4584d;}
-.btn.ghost{background:#23282e;}
+/* physical operator buttons */
+.opbtn{font-family:var(--font-ui);font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;
+  min-width:74px;padding:8px 12px;color:var(--text-main);cursor:pointer;border:1px solid #11141 3;
+  border:1px solid #131817;border-top-color:#4d574f;
+  background:linear-gradient(180deg,#3a423f,#2b322f);
+  box-shadow:inset 0 1px 0 #ffffff10,0 2px 0 #15191 7,0 3px 4px #00000050;}
+.opbtn{box-shadow:inset 0 1px 0 #ffffff10,0 2px 0 #151917,0 3px 4px #00000050;}
+.opbtn:hover{background:linear-gradient(180deg,#414a46,#313836);}
+.opbtn:active{transform:translateY(2px);box-shadow:inset 0 2px 5px #00000070;}
+.opbtn:disabled{opacity:.4;cursor:not-allowed;}
+.opbtn.start{color:#e2f5e7;background:linear-gradient(180deg,#3f9457,#2c6e40);border-top-color:#5cc077;}
+.opbtn.stop{color:#f7e2de;background:linear-gradient(180deg,#bc4636,#8f3327);border-top-color:#dc5a47;}
 
-/* ===== detail panel ===== */
-.detail{padding:0;overflow:auto;}
-.empty{color:var(--label);padding:18px;}
-.det-title{font-size:21px;font-weight:700;color:#eef2f5;padding:10px 14px 4px;}
-.det-desc{color:var(--dim);padding:0 14px 10px;font-size:14px;}
-.field{display:grid;grid-template-columns:128px 1fr;gap:0;border-top:1px solid var(--border);}
-.field .fk{background:var(--steel3);color:var(--label);text-transform:uppercase;font-size:11.5px;
-  font-weight:600;letter-spacing:.06em;padding:7px 12px;border-right:1px solid var(--border);}
-.field .fv{padding:7px 12px;color:var(--ink);}
-.subhead{background:var(--steel2);border-top:2px solid var(--border-lt);padding:6px 12px;font-weight:700;
-  letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:#c7ced4;}
-/* health checks */
-.check{display:flex;align-items:center;gap:10px;padding:6px 12px;border-top:1px solid var(--border);}
-.check .ind{width:14px;height:14px;flex:0 0 14px;border:1px solid #0006;}
-.check .ind.ok{background:var(--run);} .check .ind.bad{background:var(--alarm);}
-.check .clab{flex:1;font-size:14px;}
-.check .cdet{font-family:var(--font-log);font-size:11.5px;color:var(--label);}
-/* warnings (alarm-first) */
-.warn{display:flex;gap:10px;padding:9px 12px;border-top:1px solid var(--border);background:#332617;
-  border-left:5px solid var(--warn);color:#f1d79a;font-size:14px;}
-.warn.crit{background:#3a201d;border-left-color:var(--alarm);color:#f0bbb4;}
-.warn .wic{font-weight:700;}
+/* ===== control bay (selected deployment) ===== */
+.bay-empty{color:var(--text-dim);padding:22px;}
+.bay-hd{background:linear-gradient(180deg,#21100c,#1a1513);border-bottom:2px solid #0d100f;
+  padding:12px 16px;box-shadow:inset 0 -1px 0 #00000040;}
+.bay-hd .nm{font-size:21px;font-weight:700;letter-spacing:.04em;color:#f1ece0;}
+.bay-hd .ds{font-size:13px;color:var(--text-muted);margin-top:3px;}
+.readout{display:grid;grid-template-columns:140px 1fr;border-bottom:1px solid var(--line-soft);}
+.readout .rk{background:var(--bg-panel-deep);color:var(--text-dim);font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;padding:8px 14px;border-right:1px solid var(--line-soft);box-shadow:inset -1px 0 0 #00000030;}
+.readout .rv{padding:8px 14px;color:var(--text-main);}
+.subbar{background:#20312a;border-top:2px solid #3f6a4d;border-bottom:1px solid var(--line-soft);
+  padding:7px 16px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#bfe6c9;font-weight:600;}
+/* checklist health indicators */
+.chk{display:flex;align-items:center;gap:12px;padding:8px 16px;border-bottom:1px solid var(--line-soft);}
+.chk .led{width:11px;height:11px;border-radius:2px;flex:0 0 11px;box-shadow:inset 0 0 2px #000;}
+.chk .led.ok{background:radial-gradient(circle at 35% 30%,#9be8ad,#2f9c4f);box-shadow:0 0 5px #4fb36a88;}
+.chk .led.bad{background:radial-gradient(circle at 35% 30%,#f3a294,#b53322);box-shadow:0 0 5px #d64a36aa;}
+.chk .cl{flex:1;font-size:14px;}
+.chk .cd{font-family:var(--font-num);font-size:11.5px;color:var(--text-dim);}
+/* warnings as alarm blocks */
+.alarmblk{display:flex;gap:12px;align-items:flex-start;padding:10px 16px;margin:0;
+  background:var(--warn-bg);border-left:6px solid var(--warn);
+  border-top:1px solid #00000040;color:#f1d79a;font-size:14px;line-height:1.4;}
+.alarmblk.crit{background:var(--alarm-bg);border-left-color:var(--crit);color:#f0bbb4;}
+.alarmblk .ico{font-weight:700;font-size:16px;line-height:1.2;}
 
-/* ===== log ===== */
-.logbar{display:flex;align-items:center;gap:8px;}
-.logfilters{display:flex;gap:0;border:1px solid var(--border-lt);}
+/* ===== event recorder ===== */
+.recorder{background:var(--bg-panel-deep);}
+.rec-hd{display:flex;align-items:center;justify-content:space-between;background:#222726;
+  border-bottom:1px solid var(--line-soft);padding:6px 14px;}
+.rec-hd .rl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);}
+.logfilters{display:flex;border:1px solid var(--line-hard);}
 .lf{font-family:var(--font-ui);font-weight:600;font-size:12px;letter-spacing:.05em;text-transform:uppercase;
-  padding:3px 11px;background:#23282e;color:var(--label);border:none;border-right:1px solid var(--border);cursor:pointer;}
-.lf:last-child{border-right:none;} .lf.on{background:var(--border-lt);color:#fff;}
-.logwrap{margin:0 10px 10px;}
-.log{font-family:var(--font-log);font-size:12px;line-height:1.5;background:#15181c;border:1px solid var(--border);
-  height:230px;overflow:auto;padding:8px 12px;color:#aeb7bf;white-space:pre-wrap;}
-.log .l-sys{color:#8fb3c9;} .log .l-err{color:#f08a80;} .log .l-warn{color:#e8c879;}
-.note{color:var(--label);font-size:13px;padding:0 12px 12px;}
+  padding:4px 12px;background:#272d2c;color:var(--text-dim);border:none;border-right:1px solid var(--line-soft);cursor:pointer;}
+.lf:last-child{border-right:none;} .lf.on{background:var(--line-hard);color:#fff;}
+.log{font-family:var(--font-num);font-size:12px;line-height:1.55;height:200px;overflow:auto;
+  background:#15181 7;background:#141716;padding:6px 0;color:#aeb7af;}
+.logline{display:grid;grid-template-columns:5px 84px 1fr;gap:0;padding:1px 0;}
+.logline .lr{background:var(--line-soft);}
+.logline.err .lr{background:var(--crit);} .logline.warn .lr{background:var(--warn);} .logline.sys .lr{background:var(--control);}
+.logline .lt{color:var(--text-dim);padding-left:10px;}
+.logline .lm{padding-right:12px;white-space:pre-wrap;}
+.logline.err .lm{color:#f08a80;} .logline.warn .lm{color:#e8c879;}
+.note{color:var(--text-dim);font-size:12.5px;padding:9px 14px;}
 </style>
 </head>
 <body>
-<header class="topbar">
-  <div class="brand">
-    <span class="name">FREE TASE2 SUITE</span>
-    <span class="tag">Operations Launcher + ICCP/SCADA HMI Runtime</span>
+<header class="appliance">
+  <div class="nameplate">
+    <div class="pn">FREE TASE2 SUITE</div>
+    <div class="ps">SCADA Runtime Orchestrator</div>
   </div>
-  <div class="tcells">
-    <div class="tcell"><span class="k">Launcher</span><span class="v"><span class="lamp run"></span>ONLINE</span></div>
-    <div class="tcell"><span class="k">Runtime</span><span class="v" id="t-runtime"><span class="lamp" id="t-lamp"></span>STOPPED</span></div>
-    <div class="tcell"><span class="k">Active Deployment</span><span class="v" id="t-dep">--</span></div>
-    <div class="tcell"><span class="k">Protocol / Mode</span><span class="v" id="t-proto">--</span></div>
-    <div class="tcell"><span class="k">Security Profile</span><span class="v" id="t-prof">--</span></div>
-    <div class="tcell"><span class="k">System Time</span><span class="v mono" id="t-clock" style="font-size:15px">--:--:--</span></div>
+  <div class="hblock state">
+    <div class="hk">Runtime</div>
+    <div class="hv" id="hb-runtime"><span class="lamp" id="hb-lamp"></span><span id="hb-runtxt">STOPPED</span></div>
   </div>
-  <div class="estop"><button id="estop" disabled>&#9632; STOP ALL</button></div>
+  <div class="hblock"><div class="hk">Active Deployment</div><div class="hv" id="hb-dep">--</div></div>
+  <div class="hblock"><div class="hk">Protocol / Mode</div><div class="hv" id="hb-proto" style="font-size:16px">--</div></div>
+  <div class="hblock"><div class="hk">Security Profile</div><div class="hv" id="hb-prof" style="font-size:17px">--</div></div>
+  <div class="hblock"><div class="hk">System Time</div><div class="hv num" id="hb-clock" style="font-size:18px">--:--:--</div></div>
+  <div class="hsp"></div>
+  <div class="hbtns">
+    <a id="hmi-link" class="linkbtn off" href="#" target="_blank">SCADA HMI</a>
+    <a id="docs-link" class="linkbtn" href="/docs/" target="_blank">Docs</a>
+  </div>
+  <div class="estop"><button id="estop" disabled>&#9632; Stop All</button></div>
 </header>
 
-<div class="main">
-  <!-- left: deployment / config selector -->
-  <section class="panel">
-    <div class="sec-head"><span class="title">Deployment Control</span><span class="meta" id="dep-count">0 configured</span></div>
-    <div class="deploys" id="dep-list"></div>
+<div class="bay">
+  <section class="rack">
+    <div class="seclabel"><span>Deployment Rack</span><span id="rack-count" class="num">0</span></div>
+    <div id="rack"></div>
+    <p class="note">One deployment energized at a time (shared ports). Simulation connects to nothing; ingestion reaches real devices, so confirm the security profile and segmentation before energizing.</p>
   </section>
-
-  <!-- right: selected deployment detail -->
-  <aside class="panel detail" id="detail">
-    <div class="empty">Select a deployment to review its launch profile and pre-launch checks.</div>
+  <aside class="control-bay" id="ctrlbay">
+    <div class="bay-empty">Select a deployment module to open its control bay.</div>
   </aside>
 </div>
 
-<!-- bottom: deployment log -->
-<section class="panel" style="margin:0 10px 4px;">
-  <div class="sec-head">
-    <span class="title">Deployment Log</span>
-    <span class="logbar">
+<section class="recorder">
+  <div class="rec-hd">
+    <span class="rl">Event Recorder</span>
+    <span style="display:flex;align-items:center;gap:10px">
       <span class="logfilters" id="logfilters">
         <button class="lf on" data-f="ALL">All</button>
         <button class="lf" data-f="SYSTEM">System</button>
         <button class="lf" data-f="RUNTIME">Runtime</button>
         <button class="lf" data-f="ERROR">Error</button>
       </span>
-      <span class="meta" id="log-state">idle</span>
+      <span class="rl num" id="rec-state">idle</span>
     </span>
   </div>
+  <div class="log" id="log"></div>
 </section>
-<div class="logwrap"><div class="log" id="log">No deployment running.</div></div>
-<p class="note">One deployment runs at a time (shared ports). Simulation connects to nothing; ingestion reaches real devices per its tag database. Review the security profile and pre-launch warnings before starting.</p>
 
 <script>
 "use strict";
-let deps={}, status={running:false}, sel=null, logFilter="ALL";
+let deps={}, status={running:false}, runs={}, sel=null, logFilter="ALL";
 const $=id=>document.getElementById(id);
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 async function api(p,b){const o=b?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}:{};return (await fetch(p,o)).json();}
-function scriptFor(d){return d.mode==="simulation"?"scripts/50_run_hmi.sh":(d.dnp3_sim?"scripts/57_run_dnp3_demo.sh":"scripts/55_run_scada.sh");}
-function portsFor(d){const p=[`TASE.2 ${d.tase2_port||10502}`,`HMI ${d.http_port||8800}`];if(d.dnp3_sim)p.push("DNP3 20000");return p;}
+function scriptFor(d){return d.mode==="simulation"?"scripts/50_run_hmi.sh":"scripts/55_run_scada.sh";}
+function portsFor(d){const p=["TASE.2 "+(d.tase2_port||10502),"HMI "+(d.http_port||8800)];if((d.sims||[]).includes("modbus"))p.push("MODBUS 1502");if((d.sims||[]).includes("dnp3"))p.push("DNP3 20000");return p;}
 
-function renderTop(){
-  const r=status.running;
-  $("t-lamp").className="lamp "+(r?(status.security==="insecure"?"warn":"run"):"");
-  $("t-runtime").innerHTML=`<span class="lamp ${r?(status.security==="insecure"?"warn":"run"):""}" id="t-lamp"></span>${r?"RUNNING":"STOPPED"}`;
-  $("t-dep").textContent=r?status.name:"--";
-  $("t-proto").textContent=r?`${status.protocol||"--"} / ${status.mode||"--"}`:"--";
-  $("t-prof").innerHTML=r?`<span style="color:${status.security==="hardened"?"var(--hardened)":"var(--insecure)"}">${(status.security||"").toUpperCase()}</span>`:"--";
+function renderHeader(){
+  const r=status.running, ins=status.security==="insecure";
+  $("hb-lamp").className="lamp "+(r?(ins?"warn":"run"):"");
+  $("hb-runtxt").textContent=r?"RUNNING":"STOPPED";
+  $("hb-runtxt").style.color=r?(ins?"var(--warn)":"var(--run)"):"var(--stop)";
+  $("hb-dep").textContent=r?status.name:"--";
+  $("hb-proto").textContent=r?(status.protocol||"--")+" / "+(status.mode||"--"):"--";
+  $("hb-prof").textContent=r?(status.security||"").toUpperCase():"--";
+  $("hb-prof").style.color=r?(status.security==="hardened"?"var(--run)":"var(--warn)"):"var(--text-main)";
   $("estop").disabled=!r;
+  const hmi=$("hmi-link");
+  if(r&&status.http_port){hmi.href="http://"+location.hostname+":"+status.http_port+"/";hmi.classList.remove("off");}
+  else hmi.classList.add("off");
+  $("docs-link").classList.toggle("off",!status.docs_available);
 }
-function renderList(){
+function renderRack(){
   const entries=Object.entries(deps).filter(([k])=>k!=="_comment");
-  $("dep-count").textContent=entries.length+" configured";
-  $("dep-list").innerHTML=entries.map(([name,d])=>{
-    const active=status.running&&status.name===name;
-    return `<div class="dep ${sel===name?"sel ":""}${active?"active":""}" data-name="${esc(name)}">
-      <div class="dep-main">
-        <div class="nm">${esc(name)}</div>
-        <div class="dep-tags">
-          <span class="tag proto">${esc(d.protocol||"ICCP")}</span>
-          <span class="tag ${d.mode==="simulation"?"sim":"ingest"}">${esc(d.mode||"")}</span>
-          <span class="tag ${d.security}">${esc(d.security||"insecure")}</span>
+  $("rack-count").textContent=entries.length+" modules";
+  $("rack").innerHTML=entries.map(([name,d])=>{
+    const on=status.running&&status.name===name;
+    return `<div class="module ${on?"energized":""} ${sel===name?"sel":""}" data-name="${esc(name)}">
+      <div class="rail"></div>
+      <div class="mod-body">
+        <div class="mod-top">
+          <span class="lamp ${on?(d.security==="insecure"?"warn":"run"):""}"></span>
+          <span class="mod-name">${esc(name)}</span>
+          <span class="mod-state ${on?"on":""}">${on?"Energized":"Dormant"}</span>
         </div>
-        <div class="dep-meta"><b>cfg</b> <span class="config-name">${esc((d.config||"").split("/").pop())}</span> &nbsp; <b>ports</b> <span class="port">${esc(portsFor(d).join(" · "))}</span></div>
+        <div class="plates">
+          <span class="plate"><b>proto</b>${esc(d.protocol||"ICCP")}</span>
+          <span class="plate"><b>mode</b>${esc(d.mode||"")}</span>
+          <span class="plate ${d.security}"><b>profile</b>${esc(d.security||"insecure")}</span>
+        </div>
+        <div class="mod-meta"><b>cfg</b> <span class="path">${esc((d.config||"").split("/").pop())}</span> &nbsp;&nbsp; <b>ports</b> <span class="port">${esc(portsFor(d).join(" / "))}</span></div>
       </div>
-      <div class="dep-status">
-        <span class="stxt ${active?"run":"stop"}">${active?"&#9679; RUNNING":"&#9675; STOPPED"}</span>
-        <div class="dep-actions">
-          ${active
-            ? `<button class="btn stop" data-stop="1">Stop</button>`
-            : `<button class="btn start" data-start="${esc(name)}" ${status.running?"disabled":""}>Start</button>`}
-          <button class="btn ghost" data-logs="${esc(name)}">Logs</button>
-        </div>
+      <div class="mod-ctrls">
+        ${on?`<button class="opbtn stop" data-stop="1">Stop</button>`
+            :`<button class="opbtn start" data-start="${esc(name)}" ${status.running?"disabled":""}>Start</button>`}
+        <button class="opbtn" data-logs="${esc(name)}">Logs</button>
       </div>
     </div>`;
   }).join("");
-  $("dep-list").querySelectorAll(".dep").forEach(el=>el.onclick=e=>{
-    if(e.target.closest("button"))return; sel=el.dataset.name; renderList(); renderDetail();
-  });
-  $("dep-list").querySelectorAll("button[data-start]").forEach(b=>b.onclick=async()=>{b.disabled=true;status=await api("/api/start",{name:b.dataset.start});sel=b.dataset.start;await refresh();});
-  $("dep-list").querySelectorAll("button[data-stop]").forEach(b=>b.onclick=async()=>{b.disabled=true;status=await api("/api/stop",{});await refresh();});
-  $("dep-list").querySelectorAll("button[data-logs]").forEach(b=>b.onclick=()=>{sel=b.dataset.logs;renderList();renderDetail();$("log").scrollIntoView({behavior:"smooth"});});
+  $("rack").querySelectorAll(".module").forEach(el=>el.onclick=e=>{if(e.target.closest("button"))return;sel=el.dataset.name;renderRack();renderBay();});
+  $("rack").querySelectorAll("button[data-start]").forEach(b=>b.onclick=async()=>{b.disabled=true;status=await api("/api/start",{name:b.dataset.start});sel=b.dataset.start;await refresh();});
+  $("rack").querySelectorAll("button[data-stop]").forEach(b=>b.onclick=async()=>{b.disabled=true;status=await api("/api/stop",{});await refresh();});
+  $("rack").querySelectorAll("button[data-logs]").forEach(b=>b.onclick=()=>{sel=b.dataset.logs;renderRack();renderBay();$("log").scrollIntoView({behavior:"smooth"});});
 }
-async function renderDetail(){
+async function renderBay(){
   const d=deps[sel];
-  if(!d){$("detail").innerHTML='<div class="empty">Select a deployment to review its launch profile and pre-launch checks.</div>';$("detail").dataset.key="";return;}
-  const active=status.running&&status.name===sel;
-  const key=sel+"|"+(active?1:0)+"|"+((status.name===sel&&status.last_run)||runs[sel]||"");
-  if($("detail").dataset.key===key)return;   // unchanged: skip refetch + rerender
-  $("detail").dataset.key=key;
-  const f=(k,v,mono)=>`<div class="field"><div class="fk">${k}</div><div class="fv ${mono?"mono":""}">${v}</div></div>`;
-  let html=`<div class="det-title">${esc(sel)}</div><div class="det-desc">${esc(d.description||"")}</div>`;
-  html+=f("Status",active?'<span style="color:var(--run);font-weight:700">RUNNING</span>':'<span style="color:var(--stop);font-weight:700">STOPPED</span>');
-  html+=f("Protocol",esc(d.protocol||"ICCP/MMS"));
-  html+=f("Mode",esc(d.mode||""));
-  html+=f("Profile",`<span style="color:${d.security==="hardened"?"var(--hardened)":"var(--insecure)"};font-weight:700">${esc((d.security||"").toUpperCase())}</span>`);
-  html+=f("Launch cmd",`<span class="script-path">python3 suite/tase2ctl.py run ${esc(sel)}</span>`,false);
-  html+=f("Script",`<span class="script-path">${esc(scriptFor(d))}</span>`);
-  html+=f("Config path",`<span class="config-name">${esc(d.config||"")}</span>`);
-  if(d.tags)html+=f("Tag database",`<span class="config-name">${esc(d.tags)}</span>`);
-  html+=f("Port bindings",`<span class="port">${esc(portsFor(d).join("   "))}</span>`);
-  html+=f("Last run",`<span class="mono">${esc((status.name===sel&&status.last_run)||(runs[sel])||"never")}</span>`);
-  html+=f("Documentation",`<a href="/docs/" target="_blank" style="color:#9fc0da">open docs &rarr;</a>`);
-
-  // pre-launch checks
+  if(!d){$("ctrlbay").innerHTML='<div class="bay-empty">Select a deployment module to open its control bay.</div>';$("ctrlbay").dataset.key="";return;}
+  const on=status.running&&status.name===sel;
+  const key=sel+"|"+(on?1:0)+"|"+((status.name===sel&&status.last_run)||runs[sel]||"");
+  if($("ctrlbay").dataset.key===key)return;
+  $("ctrlbay").dataset.key=key;
+  const ro=(k,v,cls)=>`<div class="readout"><div class="rk">${k}</div><div class="rv ${cls||""}">${v}</div></div>`;
+  let h=`<div class="bay-hd"><div class="nm">${esc(sel)}</div><div class="ds">${esc(d.description||"")}</div></div>`;
+  h+=ro("Status",on?'<span style="color:var(--run);font-weight:700">ENERGIZED</span>':'<span style="color:var(--stop);font-weight:700">DORMANT</span>');
+  h+=ro("Protocol",esc(d.protocol||"ICCP/MMS"));
+  h+=ro("Mode",esc(d.mode||""));
+  h+=ro("Profile",`<span style="color:${d.security==="hardened"?"var(--run)":"var(--warn)"};font-weight:700">${esc((d.security||"").toUpperCase())}</span>`);
+  h+=ro("Launch cmd",esc("python3 suite/tase2ctl.py run "+sel),"script");
+  h+=ro("Script",esc(scriptFor(d)),"script");
+  h+=ro("Config",esc(d.config||""),"path");
+  if(d.tags)h+=ro("Tag database",esc(d.tags),"path");
+  h+=ro("Port bindings",esc(portsFor(d).join("   ")),"port");
+  h+=ro("Last run",esc((status.name===sel&&status.last_run)||runs[sel]||"never"),"timestamp");
+  h+=ro("Documentation",'<a href="/docs/" target="_blank" style="color:#9fc0da">open docs &rarr;</a>');
   const pc=await api("/api/precheck?name="+encodeURIComponent(sel));
-  html+=`<div class="subhead">Pre-launch Health Checks</div>`;
-  html+=pc.checks.map(c=>`<div class="check"><span class="ind ${c.ok?"ok":"bad"}"></span><span class="clab">${esc(c.label)}</span><span class="cdet">${esc(c.detail)}</span></div>`).join("");
+  h+=`<div class="subbar">Pre-launch Checks</div>`;
+  h+=pc.checks.map(c=>`<div class="chk"><span class="led ${c.ok?"ok":"bad"}"></span><span class="cl">${esc(c.label)}</span><span class="cd">${esc(c.detail)}</span></div>`).join("");
   if(pc.warnings.length){
-    html+=`<div class="subhead">Warnings Before Launch</div>`;
-    html+=pc.warnings.map(w=>{const crit=/INSECURE|INGESTION/.test(w);return `<div class="warn ${crit?"crit":""}"><span class="wic">&#9888;</span><span>${esc(w)}</span></div>`;}).join("");
+    h+=`<div class="subbar" style="background:#332b19;border-top-color:var(--warn);color:#f1d79a">Warnings</div>`;
+    h+=pc.warnings.map(w=>{const crit=/INSECURE|INGESTION/.test(w);return `<div class="alarmblk ${crit?"crit":""}"><span class="ico">&#9888;</span><span>${esc(w)}</span></div>`;}).join("");
   }
-  $("detail").innerHTML=html;
+  $("ctrlbay").innerHTML=h;
 }
-function classifyLog(l){
-  if(/error|fail|denied|reject|exception/i.test(l))return"l-err";
-  if(/warn|stale|down|offline|notvalid/i.test(l))return"l-warn";
-  if(/^\[(scada|dnp3-demo|console)/i.test(l))return"l-sys";
-  return"";
-}
-function logType(l){
-  if(/error|fail|denied|reject|exception/i.test(l))return"ERROR";
-  if(/^\[(scada|dnp3-demo|console|dnp3-sim)/i.test(l))return"SYSTEM";
-  return"RUNTIME";
-}
-async function refreshLogs(){
-  if(!status.running){$("log").textContent="No deployment running.";$("log-state").textContent="idle";return;}
+function logType(l){if(/error|fail|denied|reject|exception/i.test(l))return"ERROR";if(/^\[(scada|console|modbus-sim|dnp3-sim)/i.test(l))return"SYSTEM";return"RUNTIME";}
+function logCls(l){if(/error|fail|denied|reject|exception/i.test(l))return"err";if(/warn|stale|down|offline|notvalid/i.test(l))return"warn";if(/^\[(scada|console|modbus-sim|dnp3-sim)/i.test(l))return"sys";return"";}
+async function refreshLog(){
+  if(!status.running){$("log").innerHTML='<div class="logline"><span class="lr"></span><span class="lt"></span><span class="lm" style="color:var(--text-dim)">no deployment energized</span></div>';$("rec-state").textContent="idle";return;}
   const r=await api("/api/logs");let lines=r.lines||[];
   if(logFilter!=="ALL")lines=lines.filter(l=>logType(l)===logFilter);
-  $("log-state").textContent=lines.length+" lines";
-  $("log").innerHTML=lines.map(l=>`<span class="${classifyLog(l)}">${esc(l)}</span>`).join("\n")||"(no matching lines)";
+  $("rec-state").textContent=lines.length+" lines";
+  $("log").innerHTML=lines.map(l=>{const t=l.match(/\b(\d{2}:\d{2}:\d{2})\b/);return `<div class="logline ${logCls(l)}"><span class="lr"></span><span class="lt">${t?t[1]:""}</span><span class="lm">${esc(l)}</span></div>`;}).join("");
   $("log").scrollTop=$("log").scrollHeight;
 }
-let runs={};
-async function refresh(){ status=await api("/api/status"); runs=await api("/api/runs"); renderTop(); renderList(); renderDetail(); refreshLogs(); }
-function clock(){const d=new Date();$("t-clock").textContent=d.toTimeString().slice(0,8);}
+function clock(){$("hb-clock").textContent=new Date().toTimeString().slice(0,8);}
+async function refresh(){status=await api("/api/status");runs=await api("/api/runs");renderHeader();renderRack();renderBay();refreshLog();}
 async function init(){
   deps=await api("/api/deployments");
-  $("estop").onclick=async()=>{ if(confirm("STOP ALL: terminate the running deployment?")){status=await api("/api/stop",{});await refresh();} };
-  $("logfilters").querySelectorAll(".lf").forEach(b=>b.onclick=()=>{logFilter=b.dataset.f;$("logfilters").querySelectorAll(".lf").forEach(x=>x.classList.toggle("on",x===b));refreshLogs();});
-  clock(); setInterval(clock,1000);
-  await refresh(); setInterval(refresh,2500);
+  $("estop").onclick=async()=>{if(confirm("STOP ALL: de-energize the running deployment?")){status=await api("/api/stop",{});await refresh();}};
+  $("logfilters").querySelectorAll(".lf").forEach(b=>b.onclick=()=>{logFilter=b.dataset.f;$("logfilters").querySelectorAll(".lf").forEach(x=>x.classList.toggle("on",x===b));refreshLog();});
+  clock();setInterval(clock,1000);
+  await refresh();setInterval(refresh,2500);
 }
 document.addEventListener("DOMContentLoaded",init);
 </script>

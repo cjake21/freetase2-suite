@@ -25,13 +25,24 @@
     },
 
     "field-hardened": {
-      "description": "The universal multi-protocol ingestion deployment, hardened: mutual TLS (Secure ICCP) plus a loopback command allowlist. Run scripts/gen_certs.sh first.",
+      "description": "The universal multi-protocol VIRTUAL deployment, hardened: mutual TLS (Secure ICCP) plus a loopback command allowlist. Run scripts/gen_certs.sh first.",
       "mode": "ingestion",
       "protocol": "Modbus + DNP3",
       "security": "hardened",
       "config": "config/scada.json",
       "tags": "ingest/tags.demo.json",
       "sims": ["modbus", "dnp3"],
+      "http_port": 8800,
+      "tase2_port": 10502
+    },
+
+    "physical": {
+      "description": "PHYSICAL testbed: real PLCs and RTUs, no simulators. Template to customize: edit config/scada.json for your points and create ingest/tags.json pointing at your devices. Set security to hardened for a real trust boundary. See docs guide 'Connecting physical PLCs and RTUs'.",
+      "mode": "ingestion",
+      "protocol": "Modbus / DNP3",
+      "security": "insecure",
+      "config": "config/scada.json",
+      "tags": "ingest/tags.json",
       "http_port": 8800,
       "tase2_port": 10502
     }

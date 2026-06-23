@@ -5,6 +5,14 @@ devices in a testbed: which files to edit, what to put in them, and how to verif
 the data is flowing and control reaches the equipment. It assumes you have built
 the tools ({doc}`../installation/local`).
 
+```{admonition} Which deployment
+Use the **`physical`** deployment. It runs in ingestion mode with the bench
+simulators off, so the gateway talks to your real devices. It is a template: edit
+`config/scada.json` for your points and create `ingest/tags.json` pointing at your
+PLCs and RTUs (this guide shows how), then start `physical` from the console. For a
+real trust boundary, set its security to `hardened`.
+```
+
 ```{contents}
 :local:
 :depth: 2
@@ -145,29 +153,29 @@ Fix any reported errors before running. The validator checks that point names ma
 between the two files, that types and protocol fields are valid, and that
 controllable points have a control mapping.
 
-## Step 5: add a deployment in `suite/profiles.json`
+## Step 5: use the `physical` deployment
 
-Add an ingestion deployment that uses your files, with the bench simulators off
-(omit `sims`), so the gateway talks to the real devices.
+A `physical` deployment ships in `suite/profiles.json` for exactly this case:
+ingestion mode, no simulators, using `config/scada.json` and `ingest/tags.json`.
+Once you have created `ingest/tags.json` (step 3), it is ready to start; the
+console's pre-launch checks confirm the tag database is present and the config is
+valid.
 
 ```json
-{
-  "deployments": {
-    "myfield": {
-      "description": "Live testbed: feeder1 (Modbus) + rtuA (DNP3).",
-      "mode": "ingestion",
-      "protocol": "Modbus + DNP3",
-      "security": "insecure",
-      "config": "config/scada.json",
-      "tags": "ingest/tags.json",
-      "http_port": 8800,
-      "tase2_port": 10502
-    }
-  }
+"physical": {
+  "mode": "ingestion",
+  "protocol": "Modbus / DNP3",
+  "security": "insecure",
+  "config": "config/scada.json",
+  "tags": "ingest/tags.json",
+  "http_port": 8800,
+  "tase2_port": 10502
 }
 ```
 
-You can also skip `profiles.json` and run directly:
+To name several physical sites separately, copy this block under different names
+with their own `tags` files. For a real trust boundary set `"security": "hardened"`
+(step 8). You can also run it without the console:
 
 ```bash
 TAGS=ingest/tags.json ./scripts/55_run_scada.sh

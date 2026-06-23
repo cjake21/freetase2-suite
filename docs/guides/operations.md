@@ -45,6 +45,29 @@ python3 suite/console.py        # http://127.0.0.1:8080
 | SYSTEM TIME | local clock |
 | STOP ALL | terminates the running deployment (enabled only while one runs) |
 
+### Deployments and when to use them
+
+The shipped deployments map to specific jobs. Pick the one that matches what you are
+doing; the two setup guides ({doc}`physical-testbed`, {doc}`virtual-testbed`) tell
+you which files to edit for each.
+
+| Deployment | Use it for | Mode | Field devices | Profile |
+|------------|-----------|------|---------------|---------|
+| `sim-demo` | Simulated testbed with no devices at all (capture, training, parser/IDS) | simulation | none; values from `simulateValues()` | insecure |
+| `field-demo` | Simulated testbed with virtual devices that emit real Modbus and DNP3 | ingestion | bundled simulators | insecure |
+| `field-hardened` | Same virtual devices, over mutual TLS plus a command allowlist | ingestion | bundled simulators | hardened |
+| `physical` | Physical testbed with real PLCs and RTUs | ingestion | your devices (no simulators) | insecure (set hardened for a real boundary) |
+
+Which one when:
+
+- **Building or running a physical testbed, or adding a real PLC or RTU**: use
+  `physical`. Edit `config/scada.json` and `ingest/tags.json`. See
+  {doc}`physical-testbed`.
+- **Running a simulated testbed, or adding a virtual device**: use `field-demo`
+  (virtual devices with real protocol; edit `config/scada.json`,
+  `ingest/tags.demo.json`, and the simulator value tables) or `sim-demo` (pure
+  synthetic values; edit `config/scada.json` only). See {doc}`virtual-testbed`.
+
 ### Select a deployment and read the pre-launch checks
 
 The left **Deployment Control** list is your control station. Each row shows the

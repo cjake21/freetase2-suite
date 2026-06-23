@@ -6,6 +6,14 @@ capture, parser and IDS testing, and for building out a scenario before real
 equipment is available. The companion guide for real devices is
 {doc}`physical-testbed`.
 
+```{admonition} Which deployment
+Use **`field-demo`** for a simulated testbed with virtual devices that emit real
+Modbus and DNP3 (it starts the bundled simulators). Edit `config/scada.json`,
+`ingest/tags.demo.json`, and the simulator value tables. Use **`sim-demo`** for
+purely synthetic values with no devices and no field protocol (edit
+`config/scada.json` only). `field-hardened` is `field-demo` over mutual TLS.
+```
+
 ```{contents}
 :local:
 :depth: 2

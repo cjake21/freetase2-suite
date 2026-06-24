@@ -1,0 +1,32 @@
+# FreeTASE2 Suite: starter Suricata rules for TASE.2 / ICCP (MMS) traffic.
+#
+# These are a STARTER pack, not a finished ruleset. They exist to give the
+# detection scorer (suite/score.py) something real to grade and to show how
+# observable TASE.2 behaviour maps to rules. Treat them as a baseline you tune
+# against your own captures: run them, score them, see what is missed, improve.
+#
+# They match on the ASCII object names that appear in MMS write requests on the
+# TASE.2 port. The control objects are named "<point>_ctl" with members Command,
+# Tag, and SBO, so a Block 5 operate is visible as a write touching "_ctl" and
+# "Command". Adjust the port (default 10502 in the demos; 102 is the ICCP
+# standard) and the source networks to your environment.
+#
+# Honest limitation worth stating up front: a false-data injection writes an
+# ordinary indication-point Value, which looks identical on the wire to a
+# legitimate value from the ingestion gateway. You cannot tell them apart by
+# signature alone on a shared channel. The FDI rule below is therefore a
+# source-and-rate heuristic, and catching FDI well needs value-range or anomaly
+# logic, not just content matching. The scorer will show you exactly that gap.
+
+# T0855 Unauthorized Command Message: a write to a Block 5 control object's Command.
+alert tcp any any -> any 10502 (msg:"FREETASE2 TASE.2 Block 5 control operate (Command write to _ctl)"; flow:to_server,established; content:"_ctl"; content:"Command"; distance:0; within:64; metadata:mitre_technique_id T0855; classtype:attempted-admin; sid:4200001; rev:1;)
+
+# T0855 Unauthorized Command Message: a select on a select-before-operate control.
+alert tcp any any -> any 10502 (msg:"FREETASE2 TASE.2 SBO select on control object"; flow:to_server,established; content:"_ctl"; content:"SBO"; distance:0; within:64; metadata:mitre_technique_id T0855; classtype:attempted-admin; sid:4200002; rev:1;)
+
+# T0856 Spoof Reporting Message (heuristic): a write to an indication-point Value.
+# Tune track/source so this fires on unexpected writers, not the trusted gateway.
+alert tcp any any -> any 10502 (msg:"FREETASE2 TASE.2 indication point Value write (possible spoof)"; flow:to_server,established; content:"Value"; metadata:mitre_technique_id T0856; classtype:bad-unknown; threshold:type limit, track by_src, count 1, seconds 2; sid:4200003; rev:1;)
+
+# T0856 Spoof Reporting Message: a write that forces a not-valid quality flag.
+alert tcp any any -> any 10502 (msg:"FREETASE2 TASE.2 quality flag write (possible manipulation)"; flow:to_server,established; content:"Flags"; metadata:mitre_technique_id T0856; classtype:bad-unknown; sid:4200004; rev:1;)

@@ -57,6 +57,15 @@ library only and needs no capture or parsing packages. The orchestrator
 `scripts/58_run_dataset.sh` captures a run and labels it in one step. See
 {doc}`../guides/datasets`.
 
+## Detection scorer (`suite/score.py`)
+
+Grades a sensor against a scenario's ground truth. It reads alerts (Suricata
+eve.json or a generic JSON-lines feed), matches them to the same malicious
+intervals the dataset tool derives, and reports recall per MITRE ATT&CK for ICS
+technique, mean time to detect, and the false-positive rate. Starter detection
+content lives in `detect/` and the helper `scripts/59_score.sh` runs Suricata over
+a capture and grades it. Standard library only. See {doc}`../guides/scoring`.
+
 ## DNP3 outstation simulator (`ingest/dnp3_outstation_sim.py`)
 
 A minimal outstation for the DNP3 path. It answers reads for binary and analog

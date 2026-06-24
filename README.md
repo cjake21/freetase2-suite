@@ -30,6 +30,11 @@ From a scenario run you can build a **labelled dataset**: `scripts/58_run_datase
 captures the traffic and joins it with the ground truth so every window of time is
 marked benign or malicious with a technique tag. See `docs/guides/datasets`.
 
+You can then **score a detector** against that same ground truth:
+`suite/score.py` grades a sensor's alerts (Suricata or a generic feed) and reports
+recall per technique, time to detect, and false positives. See `docs/guides/scoring`
+and the starter rules in `detect/`.
+
 Each mode runs under a **security profile**: `insecure` (plaintext, open command
 path, for ranges and attack demos) or `hardened` (mutual TLS plus a command
 allowlist, for defense testing).

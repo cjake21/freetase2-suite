@@ -6,6 +6,13 @@ Keep a Changelog, and the project aims to follow semantic versioning.
 ## [Unreleased]
 
 ### Added
+- Detection scoring: `suite/score.py` grades a sensor against a scenario's ground
+  truth. It reads Suricata eve.json or a generic JSON-lines alert feed, matches
+  alerts to the malicious intervals, and reports recall per MITRE ATT&CK for ICS
+  technique, mean time to detect, and the false-positive rate, with a JSON
+  scorecard and a markdown report. Starter Suricata rules and a runnable example
+  live in `detect/`, the helper `scripts/59_score.sh` runs Suricata and grades it,
+  and tests are in `tests/test_score.py`. See `docs/guides/scoring`.
 - Labelled datasets: `suite/dataset.py` joins a packet capture of a scenario run
   with that scenario's ground-truth timeline, by timestamp, and writes a labelled
   dataset (per-window flow features including a TASE.2/MMS PDU count, benign or

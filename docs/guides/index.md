@@ -8,6 +8,7 @@ operations
 hmi-demo
 scenarios
 datasets
+scoring
 physical-testbed
 virtual-testbed
 tase2-on-the-wire

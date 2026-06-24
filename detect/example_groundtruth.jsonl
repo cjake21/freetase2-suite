@@ -1,0 +1,6 @@
+{"ground_truth": "example", "seed": 1234, "started": 1000.0}
+{"t": 0.0, "wall": 1000.0, "do": "annotate", "label": "benign", "note": "start"}
+{"t": 2.0, "wall": 1002.0, "do": "inject", "label": "malicious", "point": "plc1_mw", "value": 19.5, "technique": "T0856", "note": "spoofed tie-line flow"}
+{"t": 6.0, "wall": 1006.0, "do": "set", "label": "benign", "point": "plc1_mw", "value": 12.0, "note": "restored"}
+{"t": 8.0, "wall": 1008.0, "do": "operate", "label": "malicious", "point": "plc1_brk", "value": 0, "technique": "T0855", "note": "unauthorized breaker open"}
+{"t": 12.0, "wall": 1012.0, "do": "end", "label": "benign", "note": "end"}

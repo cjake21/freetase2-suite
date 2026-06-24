@@ -60,8 +60,10 @@ plane needs to change to wrap it.
    actions, faults, comms loss, and false-data injection, with a ground-truth label
    timeline written out. The labelled-dataset tool is in too (`suite/dataset.py`,
    `scripts/58_run_dataset.sh`): it captures a run and labels every window from the
-   ground truth. Remaining: surface scenarios as runnable items in the console, add
-   capture and replay, and build the detection-scoring tool on top of these labels.
+   ground truth. And the detection scorer is in (`suite/score.py`, `detect/`,
+   `scripts/59_score.sh`): it grades a sensor's alerts against the ground truth, per
+   technique. Remaining: surface scenarios as runnable items in the console, add
+   capture and replay, and grow the scenario library and rule packs.
 6. **Packaging.** Versioned releases, a published container, and hosted
    documentation.
 

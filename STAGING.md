@@ -58,9 +58,10 @@ plane needs to change to wrap it.
 5. **Scenario engine.** The engine is in (`suite/scenario.py`, scenario mode, the
    `scenario-demo` deployment): a deterministic, seeded timeline of operator
    actions, faults, comms loss, and false-data injection, with a ground-truth label
-   timeline written out. Remaining: surface scenarios as runnable items in the
-   console, add capture and replay, and build the labelled-dataset and detection-
-   scoring tools on top of the ground-truth output.
+   timeline written out. The labelled-dataset tool is in too (`suite/dataset.py`,
+   `scripts/58_run_dataset.sh`): it captures a run and labels every window from the
+   ground truth. Remaining: surface scenarios as runnable items in the console, add
+   capture and replay, and build the detection-scoring tool on top of these labels.
 6. **Packaging.** Versioned releases, a published container, and hosted
    documentation.
 

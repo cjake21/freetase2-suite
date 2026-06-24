@@ -26,6 +26,10 @@ One tool, selected by mode:
   timeline alongside it. For repeatable training, IDS regression, and building
   labelled datasets. See `docs/guides/scenarios`.
 
+From a scenario run you can build a **labelled dataset**: `scripts/58_run_dataset.sh`
+captures the traffic and joins it with the ground truth so every window of time is
+marked benign or malicious with a technique tag. See `docs/guides/datasets`.
+
 Each mode runs under a **security profile**: `insecure` (plaintext, open command
 path, for ranges and attack demos) or `hardened` (mutual TLS plus a command
 allowlist, for defense testing).

@@ -6,6 +6,13 @@ Keep a Changelog, and the project aims to follow semantic versioning.
 ## [Unreleased]
 
 ### Added
+- Labelled datasets: `suite/dataset.py` joins a packet capture of a scenario run
+  with that scenario's ground-truth timeline, by timestamp, and writes a labelled
+  dataset (per-window flow features including a TASE.2/MMS PDU count, benign or
+  malicious labels with technique tags, a deterministic train/test split, and a
+  manifest). Standard-library pcap reader, so no capture or parsing packages.
+  Orchestrator `scripts/58_run_dataset.sh` captures and labels in one step, with
+  tests in `tests/test_dataset.py`. See `docs/guides/datasets`.
 - Scenario mode: a deterministic, seeded timeline (`suite/scenario.py`,
   `scenarios/*.json`) is the value source, with the server simulation off and no
   gateway. It seeds and heartbeats every point, plays a timeline of operations,

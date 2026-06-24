@@ -46,6 +46,17 @@ tools build on. It drives one ICCP agent over the same line protocol as the brid
 so it needs no new protocol code. Standard library only. See
 {doc}`../guides/scenarios`.
 
+## Dataset labeller (`suite/dataset.py`)
+
+Joins a packet capture of a scenario run with that scenario's ground-truth
+timeline, by timestamp, and writes a labelled dataset: one row per time window with
+flow features (including a TPKT-framed TASE.2/MMS PDU count) and a benign or
+malicious label with technique tags, plus a deterministic train/test split and a
+manifest. It reads the capture with a small built-in pcap reader, so it is standard
+library only and needs no capture or parsing packages. The orchestrator
+`scripts/58_run_dataset.sh` captures a run and labels it in one step. See
+{doc}`../guides/datasets`.
+
 ## DNP3 outstation simulator (`ingest/dnp3_outstation_sim.py`)
 
 A minimal outstation for the DNP3 path. It answers reads for binary and analog

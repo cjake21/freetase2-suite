@@ -11,6 +11,9 @@ src/tase2_hmi_agent
 *.pcap
 *.o
 
+# generated labelled datasets
+datasets/
+
 # python bytecode
 __pycache__/
 *.pyc

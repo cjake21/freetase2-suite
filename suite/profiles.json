@@ -24,6 +24,17 @@
       "tase2_port": 10502
     },
 
+    "scenario-demo": {
+      "description": "Scenario mode. A deterministic, scripted timeline (scenarios/fdi_tieline.json) is the value source: normal operations plus a false-data injection, a spoofed alarm, an unauthorized breaker open, and a comms outage. No gateway, no simulation. Writes a ground-truth label timeline for datasets and detection scoring. Reproducible every run.",
+      "mode": "scenario",
+      "protocol": "ICCP/MMS",
+      "security": "insecure",
+      "config": "config/scada.json",
+      "scenario": "scenarios/fdi_tieline.json",
+      "http_port": 8800,
+      "tase2_port": 10502
+    },
+
     "field-hardened": {
       "description": "The universal multi-protocol VIRTUAL deployment, hardened: mutual TLS (Secure ICCP) plus a loopback command allowlist. Run scripts/gen_certs.sh first.",
       "mode": "ingestion",

@@ -1,0 +1,18 @@
+{
+  "name": "steady_state",
+  "description": "A calm, all-benign baseline run: every station online and holding steady, no attacks. Useful as the 'normal' half of a training set, as a soak test, and as the clean reference a detector should produce zero alerts against.",
+  "seed": 1,
+
+  "baseline": {
+    "plc1_mw": 12.0, "plc1_kv": 138.0, "plc1_avr": 1.0, "plc1_brk": 1,
+    "plc2_mw": 9.0,  "plc2_kv": 136.0, "plc2_brk": 1,
+    "plc3_mw": 7.0,  "plc3_temp": 65.0, "plc3_stat": 1,
+    "rtu1_mw": 8.0,  "rtu1_kv": 138.0, "rtu1_brk": 1
+  },
+
+  "timeline": [
+    { "at": 0,  "do": "annotate", "note": "steady-state baseline begins" },
+    { "at": 20, "do": "annotate", "note": "steady-state baseline ends" },
+    { "at": 20, "do": "end" }
+  ]
+}

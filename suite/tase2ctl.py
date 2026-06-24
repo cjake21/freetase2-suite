@@ -16,6 +16,9 @@ Operating modes:
                (training and capture; the classic lab behaviour)
   ingestion    server carries real field data from the ingestion gateway over
                Modbus or DNP3, and accepts control down to the devices
+  scenario     a deterministic, scripted timeline (suite/scenario.py) is the value
+               source: reproducible operations, attacks, and faults, with a
+               ground-truth label timeline written out for datasets and scoring
 
 Security profiles:
   insecure     plaintext, open command path (ranges and attack demos)
@@ -41,6 +44,7 @@ PROFILES = os.path.join(HERE, "profiles.json")
 LAUNCHERS = {
     "simulation": "scripts/50_run_hmi.sh",
     "ingestion": "scripts/55_run_scada.sh",
+    "scenario": "scripts/56_run_scenario.sh",
 }
 
 
@@ -67,6 +71,10 @@ def build_launch(name):
     env["PROFILE"] = d.get("security", "insecure")
     if d.get("tags"):
         env["TAGS"] = os.path.join(ROOT, d["tags"])
+
+    # scenario mode: the deployment names a scenario file the engine plays.
+    if d.get("scenario"):
+        env["SCENARIO"] = os.path.join(ROOT, d["scenario"])
 
     # bench field-device simulators for the demo (no hardware): a deployment lists
     # which to start under "sims" (e.g. ["modbus","dnp3"]).

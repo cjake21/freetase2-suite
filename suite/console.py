@@ -153,6 +153,9 @@ def precheck(name):
     if d.get("tags"):
         tags = os.path.join(R, d["tags"])
         add("tag database present", os.path.isfile(tags), d["tags"])
+    if d.get("scenario"):
+        scn = os.path.join(R, d["scenario"])
+        add("scenario present", os.path.isfile(scn), d["scenario"])
     argv = ["python3", os.path.join(R, "scripts", "validate_config.py"), cfg]
     if tags:
         argv.append(tags)

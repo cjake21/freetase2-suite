@@ -1,0 +1,39 @@
+{
+  "name": "fdi_tieline",
+  "description": "Normal operations on a four-station feeder, interrupted by a false-data injection on the tie-line flow, a transient spoofed transformer alarm, a benign voltage sag, an unauthorized breaker open, and a comms outage on the RTU. A good first scenario: it mixes benign operations with several distinct attack and fault techniques so a detector has something to find and something to leave alone.",
+  "seed": 1234,
+
+  "baseline": {
+    "plc1_mw": 12.0, "plc1_kv": 138.0, "plc1_avr": 1.0, "plc1_brk": 1,
+    "plc2_mw": 9.0,  "plc2_kv": 136.0, "plc2_brk": 1,
+    "plc3_mw": 7.0,  "plc3_temp": 65.0, "plc3_stat": 1,
+    "rtu1_mw": 8.0,  "rtu1_kv": 138.0, "rtu1_brk": 1
+  },
+
+  "timeline": [
+    { "at": 0,  "do": "annotate", "note": "normal operations" },
+
+    { "at": 5,  "do": "inject", "point": "plc1_mw", "value": 19.5,
+      "technique": "T0856", "note": "spoofed tie-line flow, pushed over the 15 MW hi limit" },
+
+    { "at": 12, "do": "pulse", "point": "plc3_temp", "value": 95.0, "seconds": 6,
+      "technique": "T0856", "note": "transient false oil-temp alarm, then back to normal" },
+
+    { "at": 20, "do": "ramp", "point": "plc1_kv", "to": 119.0, "seconds": 8,
+      "label": "benign", "note": "bus voltage sag (a real operating event, not an attack)" },
+
+    { "at": 30, "do": "operate", "point": "plc1_brk", "command": 0, "sbo": true,
+      "technique": "T0855", "label": "malicious", "note": "unauthorized breaker open" },
+
+    { "at": 36, "do": "comms_loss", "station": "plc3", "label": "benign",
+      "note": "transformer station loses comms (equipment fault)" },
+
+    { "at": 44, "do": "restore_comms", "station": "plc3", "label": "benign",
+      "note": "transformer station comms restored" },
+
+    { "at": 50, "do": "set", "point": "plc1_kv", "value": 138.0,
+      "note": "bus voltage recovered" },
+
+    { "at": 53, "do": "end", "note": "scenario complete" }
+  ]
+}

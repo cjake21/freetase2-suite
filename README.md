@@ -21,6 +21,10 @@ One tool, selected by mode:
   DNP3, publishes it northbound as real TASE.2 with quality and time tags, shows it
   on a SCADA HMI, and sends operator commands back down to the field (direct operate
   or select-before-operate).
+- **Scenario mode** plays a deterministic, scripted timeline of operations,
+  attacks, and faults, the same way every run, and writes a ground-truth label
+  timeline alongside it. For repeatable training, IDS regression, and building
+  labelled datasets. See `docs/guides/scenarios`.
 
 Each mode runs under a **security profile**: `insecure` (plaintext, open command
 path, for ranges and attack demos) or `hardened` (mutual TLS plus a command
@@ -40,7 +44,7 @@ Prefer the command line:
 
 ```bash
 python3 suite/tase2ctl.py list
-python3 suite/tase2ctl.py run field-demo       # or sim-demo, field-hardened
+python3 suite/tase2ctl.py run field-demo       # or sim-demo, scenario-demo, field-hardened
 ```
 
 ## The control plane

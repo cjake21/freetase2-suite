@@ -6,6 +6,13 @@ Keep a Changelog, and the project aims to follow semantic versioning.
 ## [Unreleased]
 
 ### Added
+- Scenario mode: a deterministic, seeded timeline (`suite/scenario.py`,
+  `scenarios/*.json`) is the value source, with the server simulation off and no
+  gateway. It seeds and heartbeats every point, plays a timeline of operations,
+  attacks, and faults as real ICCP traffic, and writes a ground-truth label
+  timeline (benign or malicious, with a technique tag) for datasets and detection
+  scoring. New deployment `scenario-demo`, launcher `scripts/56_run_scenario.sh`,
+  and tests in `tests/test_scenario.py`. See `docs/guides/scenarios`.
 - Documentation portal under `docs/` (Sphinx + sphinx_rtd_theme + MyST Markdown):
   Overview, Installation, Getting Started, Core Concepts, Usage Guides, Module
   documentation, API Reference, Developer Information, and Resources. Built in CI

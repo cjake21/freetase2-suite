@@ -6,6 +6,7 @@
 workflows
 operations
 hmi-demo
+scenarios
 physical-testbed
 virtual-testbed
 tase2-on-the-wire

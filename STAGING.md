@@ -55,9 +55,12 @@ plane needs to change to wrap it.
 4. **Merge the lab assets.** Fold any remaining unique pieces from
    `Free-Tase2-Server` (capture lab workflows, training scenarios) into simulation
    mode as additional deployments and docs.
-5. **Scenario engine.** Wire the planned scriptable timeline (operator actions,
-   faults, comms loss, false-data injection, capture and replay) into the console as
-   runnable scenarios.
+5. **Scenario engine.** The engine is in (`suite/scenario.py`, scenario mode, the
+   `scenario-demo` deployment): a deterministic, seeded timeline of operator
+   actions, faults, comms loss, and false-data injection, with a ground-truth label
+   timeline written out. Remaining: surface scenarios as runnable items in the
+   console, add capture and replay, and build the labelled-dataset and detection-
+   scoring tools on top of the ground-truth output.
 6. **Packaging.** Versioned releases, a published container, and hosted
    documentation.
 

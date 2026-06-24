@@ -35,6 +35,17 @@ A dynamic station grid rendered from the bridge state. One card per station, eac
 point with value, unit, and quality, plus a global alarm strip and event log.
 Controllable points show operate controls, with a select and arm flow for SBO.
 
+## Scenario engine (`suite/scenario.py`)
+
+The value source in scenario mode. It plays a deterministic, seeded timeline
+(`scenarios/*.json`) against the server: it seeds every point, keeps them fresh
+with a heartbeat, and turns each timeline event into real ICCP traffic (value
+injection, operator commands, ramps, comms loss). It writes a ground-truth label
+timeline (benign or malicious, with a technique tag) that the dataset and detection
+tools build on. It drives one ICCP agent over the same line protocol as the bridge,
+so it needs no new protocol code. Standard library only. See
+{doc}`../guides/scenarios`.
+
 ## DNP3 outstation simulator (`ingest/dnp3_outstation_sim.py`)
 
 A minimal outstation for the DNP3 path. It answers reads for binary and analog

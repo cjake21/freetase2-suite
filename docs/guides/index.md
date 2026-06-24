@@ -7,6 +7,7 @@ workflows
 operations
 hmi-demo
 scenarios
+attacks
 physics
 datasets
 scoring

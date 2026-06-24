@@ -46,9 +46,12 @@ injection, operator commands, ramps, comms loss). It writes a ground-truth label
 timeline (benign or malicious, with a technique tag) that the dataset and detection
 tools build on. A scenario may also name a `grid`, and then it reuses the power-flow
 co-simulation as the value source, so a scripted breaker operate cascades and an
-injection masks the real value. It drives one ICCP agent over the same line protocol
-as the bridge, so it needs no new protocol code. Standard library only. See
-{doc}`../guides/scenarios`.
+injection masks the real value. With `"attacker": true` it opens a second association
+so reconnaissance reads (`scan`), false data, unauthorized commands, and floods
+(`flood`) come from a separate peer, the way a real intrusion looks on the wire. It
+drives the ICCP agent over the same line protocol as the bridge, so it needs no new
+protocol code. The built-in attack library is in `scenarios/`. Standard library only.
+See {doc}`../guides/scenarios` and {doc}`../guides/attacks`.
 
 ## Dataset labeller (`suite/dataset.py`)
 

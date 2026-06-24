@@ -1,0 +1,33 @@
+{
+  "name": "ukraine2015_blackout",
+  "description": "Models the December 2015 attack on the Ukrainian grid (Sandworm / BlackEnergy3), the first publicly confirmed cyberattack to cause a blackout. After stealing operator credentials, the adversary used the utility's own SCADA to open breakers at around thirty substations, then bricked HMIs and serial-to-Ethernet converters and ran a telephone denial-of-service so operators could not see or respond. This scenario reproduces that on the wire: a second (attacker) association appears, reads the whole object model, opens the breakers across the bay, fights the operators by re-issuing open commands, and finally takes a station's view offline. The grid is live (config/grid.json), so the breaker opens cause a real cascading blackout. ATT&CK for ICS: T0888 Remote System Information Discovery, T0801 Monitor Process State, T0855 Unauthorized Command Message, T0831 Manipulation of Control, T0813 Denial of Control, T0815 Denial of View.",
+  "seed": 2015,
+  "period": 2.0,
+  "grid": "config/grid.json",
+  "attacker": true,
+
+  "timeline": [
+    { "at": 0,  "do": "annotate", "note": "normal operations; legitimate RTU telemetry is steady" },
+
+    { "at": 4,  "do": "scan", "discover": true, "technique": "T0888",
+      "note": "attacker association reads the model: version, supported features, bilateral table" },
+    { "at": 10, "do": "scan", "all": true, "technique": "T0801",
+      "note": "reads every indication point to map the live grid state before acting" },
+
+    { "at": 18, "do": "operate", "point": "plc1_brk", "command": 0, "sbo": true,
+      "technique": "T0855", "label": "malicious", "note": "unauthorized open: substation 1 main tie" },
+    { "at": 22, "do": "operate", "point": "plc2_brk", "command": 0,
+      "technique": "T0855", "label": "malicious", "note": "unauthorized open: substation 2 feeder" },
+    { "at": 26, "do": "operate", "point": "rtu1_brk", "command": 0, "sbo": true,
+      "technique": "T0831", "label": "malicious", "note": "unauthorized open: substation 3 (the cascade follows)" },
+
+    { "at": 34, "do": "flood", "target": "plc1_brk", "seconds": 8, "rate": 6,
+      "technique": "T0813", "note": "operators try to re-close; the attacker re-sends open, denying control" },
+
+    { "at": 44, "do": "comms_loss", "station": "plc3", "label": "malicious",
+      "technique": "T0815", "note": "HMI and serial converters bricked: operator view lost at the transformer station" },
+
+    { "at": 52, "do": "annotate", "note": "blackout across the load island; operators blind" },
+    { "at": 54, "do": "end" }
+  ]
+}

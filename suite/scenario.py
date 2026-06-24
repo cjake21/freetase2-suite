@@ -169,6 +169,14 @@ class Agent:
     def cancel(self, point):
         self._send("CANCEL %s_ctl" % point)
 
+    def read(self, item):
+        self._send("READ %s" % item)
+
+    def snapshot(self, points):
+        """Read the Block 1 metadata (version, features, bilateral table) plus the
+        given points. This is what an attacker's discovery looks like on the wire."""
+        self._send("SNAPSHOT " + " ".join(points))
+
     def stop(self):
         try:
             self._send("QUIT")
@@ -197,6 +205,8 @@ ACTIONS = {
     "comms_loss":    [],                       # drop a station or point(s)
     "restore_comms": [],                       # bring them back
     "quality":       ["point", "quality"],     # force a quality flag, value unchanged
+    "scan":          [],                       # reconnaissance/collection reads
+    "flood":         ["target"],               # denial of service: rapid messages
     "end":           [],                       # stop the run early
 }
 
@@ -228,6 +238,13 @@ def validate(scenario, model):
         if "point" in step and not model.exists(step["point"]):
             errors.append("%s (%s): point %r is not in the point model"
                           % (where, do, step["point"]))
+        if do == "scan":
+            for p in step.get("points", []):
+                if not model.exists(p):
+                    errors.append("%s (scan): point %r is not in the point model" % (where, p))
+        if do == "flood" and "target" in step and not model.exists(step["target"]):
+            errors.append("%s (flood): target %r is not in the point model"
+                          % (where, step["target"]))
         if step.get("quality") and step["quality"] not in QUALITY:
             errors.append("%s (%s): bad quality %r (want %s)"
                           % (where, do, step["quality"], "|".join(QUALITY)))
@@ -257,10 +274,17 @@ def validate(scenario, model):
 # --------------------------------------------------------------------------- #
 
 class Runner:
-    def __init__(self, scenario, model, agent, out=None):
+    def __init__(self, scenario, model, agent, out=None, attacker=None):
         self.s = scenario
         self.model = model
-        self.agent = agent
+        self.agent = agent                      # the legitimate value source (RTU/gateway)
+        # An optional second association for the attack traffic. When a scenario
+        # sets "attacker": true, recon reads, false-data writes, unauthorized
+        # commands, and floods come from this connection, while the steady
+        # telemetry stays on the primary, so a capture shows two associations and a
+        # detector has the realistic signal of a new peer behaving badly.
+        self.attacker = attacker
+        self.mal = attacker or agent
         self.out = out                          # ground-truth file handle or None
         self.rng = random.Random(scenario.get("seed", 0))
         self.start = None
@@ -323,10 +347,21 @@ class Runner:
 
     # ---- writing points --------------------------------------------------- #
 
+    def _actor(self, step, default_malicious):
+        """Which association issues an action. Malicious actions use the attacker
+        connection when the scenario defines one; an explicit 'from' overrides."""
+        want = step.get("from")
+        if want == "attacker" or (want is None and default_malicious):
+            return self.mal
+        return self.agent
+
     def _assert(self, name):
-        """Push one point's current value, quality, and a fresh time tag."""
-        self.agent.write_q(name, self.value[name], self.model.is_float(name),
-                           self.qual[name], int(time.time()))
+        """Push one point's current value, quality, and a fresh time tag. A point a
+        script has pinned (false data) is re-asserted from the attacker connection,
+        so the spoof appears to come from the attacker, not the legitimate feed."""
+        agent = self.mal if (self.attacker and name in self.scripted) else self.agent
+        agent.write_q(name, self.value[name], self.model.is_float(name),
+                      self.qual[name], int(time.time()))
 
     def _refresh_physics(self):
         """When the scenario has a grid, the physics solution is the value source.
@@ -434,10 +469,11 @@ class Runner:
     def do_operate(self, step):
         name, cmd = step["point"], int(step["command"])
         sbo = bool(step.get("sbo", False))
+        actor = self._actor(step, step.get("label") == "malicious")
         if sbo:
-            self.agent.select(name)
+            actor.select(name)
             self._sleep(0.3)
-        self.agent.operate(name, cmd, step.get("tag", "scenario"))
+        actor.operate(name, cmd, step.get("tag", "scenario"))
         # if the operated point is a breaker on the grid, switch the line so the
         # co-simulation redistributes flow and may cascade
         if self.grid is not None and name in self.grid_breaker_line:
@@ -451,10 +487,11 @@ class Runner:
     def do_setpoint(self, step):
         name, val = step["point"], float(step["value"])
         sbo = bool(step.get("sbo", False))
+        actor = self._actor(step, step.get("label") == "malicious")
         if sbo:
-            self.agent.select(name)
+            actor.select(name)
             self._sleep(0.3)
-        self.agent.setpoint(name, val, step.get("tag", "scenario"))
+        actor.setpoint(name, val, step.get("tag", "scenario"))
         self.record("setpoint", name, val, "valid", step.get("label"),
                     step.get("technique"), step.get("note"))
 
@@ -498,6 +535,56 @@ class Runner:
     def do_annotate(self, step):
         self.record("annotate", note=step.get("note", ""), label=step.get("label", "benign"))
 
+    def do_scan(self, step):
+        """Reconnaissance and collection: the attacker reads the model. With
+        'discover' it also reads the Block 1 metadata (version, supported features,
+        bilateral table). This is the browsing a detector should catch: a peer
+        reading objects it has no operational need to read."""
+        points = step.get("points")
+        if step.get("all") or not points:
+            points = list(self.model.type.keys())
+        agent = self._actor(step, True)
+        try:
+            if step.get("discover"):
+                agent.snapshot(points)          # metadata plus the points in one sweep
+            else:
+                for name in points:
+                    agent.read(name)
+        except IOError:
+            return
+        self.record("scan", note=step.get("note") or ("read %d object(s)" % len(points)),
+                    label=step.get("label", "malicious"), technique=step.get("technique"))
+
+    def do_flood(self, step):
+        """Denial of service: hammer a control or point with rapid messages for a
+        few seconds. A marker is recorded about once a second so the labelled window
+        covers the whole flood."""
+        target = step["target"]
+        seconds = float(step.get("seconds", 5.0))
+        rate = float(step.get("rate", 10.0))
+        kind = step.get("kind", "operate")      # operate | write
+        agent = self._actor(step, True)
+        interval = 1.0 / max(1.0, rate)
+        is_float = self.model.is_float(target)
+        deadline = time.time() + seconds
+        toggle, next_mark = 0, 0.0
+        while time.time() < deadline and not self._stop.is_set():
+            try:
+                if kind == "write":
+                    agent.write_q(target, toggle, is_float, QUALITY["valid"], int(time.time()))
+                else:
+                    agent.operate(target, toggle, "flood")
+            except IOError:
+                break
+            toggle ^= 1
+            if time.time() >= next_mark:
+                self.record("flood", target, toggle,
+                            label=step.get("label", "malicious"),
+                            technique=step.get("technique", "T0814"),
+                            note=step.get("note") or ("flood %s" % target))
+                next_mark = time.time() + 1.0
+            self._sleep(interval)
+
     # ---- the run loop ----------------------------------------------------- #
 
     def _sleep(self, secs):
@@ -508,6 +595,10 @@ class Runner:
         if not self.agent.wait_online(timeout=10):
             log("[scenario] ICCP association did not come online; aborting")
             return 1
+        if self.attacker and not self.attacker.wait_online(timeout=10):
+            log("[scenario] attacker association did not come online; continuing on one")
+            self.attacker = None
+            self.mal = self.agent
         self.start = time.time()
         log("[scenario] running %r (seed %s); ICCP online, %d point(s)"
             % (self.s.get("name", "scenario"), self.s.get("seed", 0), len(self.value)))
@@ -532,6 +623,8 @@ class Runner:
             "comms_loss": self.do_comms_loss,
             "restore_comms": self.do_restore_comms,
             "quality": self.do_quality,
+            "scan": self.do_scan,
+            "flood": self.do_flood,
         }
         try:
             for step in timeline:
@@ -598,10 +691,14 @@ def cmd_run(args):
         log("[scenario] ground truth -> %s" % args.out)
 
     agent = Agent(args.server_host, args.server_port, model.domain)
+    attacker = (Agent(args.server_host, args.server_port, model.domain)
+                if scenario.get("attacker") else None)
     try:
-        rc = Runner(scenario, model, agent, out).run()
+        rc = Runner(scenario, model, agent, out, attacker).run()
     finally:
         agent.stop()
+        if attacker:
+            attacker.stop()
         if out:
             out.close()
     return rc

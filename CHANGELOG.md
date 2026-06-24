@@ -6,6 +6,18 @@ Keep a Changelog, and the project aims to follow semantic versioning.
 ## [Unreleased]
 
 ### Added
+- Attack library and dual-association traffic: built-in, multi-stage grid attacks
+  grounded in real incidents and MITRE ATT&CK for ICS, written to resemble real
+  intrusion traffic for detection building. The scenario engine gained a second
+  `"attacker"` association (recon, false data, commands, and floods come from a
+  separate peer, not the trusted feed), a `scan` action (MMS reads, discovery and
+  collection), and a `flood` action (denial of service). Scenarios:
+  `ukraine2015_blackout` (2015 Sandworm/BlackEnergy), `industroyer_sweep` (2016
+  Industroyer/CRASHOVERRIDE), `stealthy_false_data` (manipulation of view and alarm
+  suppression), and `recon_collection`, each physics-backed, with deployments
+  `ukraine2015-attack`, `industroyer-attack`, `stealthy-attack`, `recon-attack`. The
+  technique catalog (`suite/dataset.py`) and the labeller recognise the full set.
+  Tests in `tests/test_scenario.py`. See `docs/guides/attacks`.
 - Multi-control-center federation: `suite/relay.py` is an inter-control-center tie.
   For each link in `config/federation.json` it subscribes to the source center and
   mirrors the agreed points into the destination center over real ICCP, so a partner

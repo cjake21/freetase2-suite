@@ -112,14 +112,67 @@ class TestGroundTruthLabel(unittest.TestCase):
 
 
 class FakeAgent:
-    """A no-op agent so the runner logic can be tested without a live server."""
-    def write_q(self, *a): pass
-    def operate(self, *a, **k): pass
+    """A recording agent so the runner logic can be tested without a live server."""
+    def __init__(self, name="agent"):
+        self.name = name
+        self.reads = []
+        self.operates = []
+        self.writes = []
+    def write_q(self, point, *a): self.writes.append(point)
+    def operate(self, point, *a, **k): self.operates.append(point)
     def setpoint(self, *a, **k): pass
     def select(self, *a): pass
     def cancel(self, *a): pass
+    def read(self, item): self.reads.append(item)
+    def snapshot(self, points): self.reads.extend(points)
     def wait_online(self, *a, **k): return True
     def stop(self): pass
+
+
+class TestAttackActions(unittest.TestCase):
+    """The attacker association and the recon/DoS actions."""
+    def _runner(self, scenario):
+        model = sc.PointModel(CONFIG)
+        return sc.Runner(scenario, model, FakeAgent("primary"),
+                         attacker=FakeAgent("attacker"))
+
+    def test_scan_reads_via_attacker(self):
+        r = self._runner({"timeline": []})
+        r.do_scan({"do": "scan", "points": ["plc1_mw", "plc2_mw"], "technique": "T0801"})
+        self.assertEqual(r.attacker.reads, ["plc1_mw", "plc2_mw"])  # recon on attacker conn
+        self.assertEqual(r.agent.reads, [])                         # not the telemetry conn
+
+    def test_scan_all_reads_every_point(self):
+        r = self._runner({"timeline": []})
+        r.do_scan({"do": "scan", "all": True})
+        self.assertEqual(set(r.attacker.reads), set(sc.PointModel(CONFIG).type))
+
+    def test_flood_hammers_target_via_attacker(self):
+        r = self._runner({"timeline": []})
+        r.do_flood({"do": "flood", "target": "plc2_brk", "seconds": 0.4,
+                    "rate": 50, "technique": "T0814"})
+        self.assertGreater(len(r.attacker.operates), 3)             # many rapid commands
+        self.assertTrue(all(p == "plc2_brk" for p in r.attacker.operates))
+
+    def test_malicious_operate_uses_attacker(self):
+        r = self._runner({"timeline": []})
+        r.do_operate({"do": "operate", "point": "plc1_brk", "command": 0,
+                      "label": "malicious"})
+        self.assertEqual(r.attacker.operates, ["plc1_brk"])
+        self.assertEqual(r.agent.operates, [])
+
+    def test_injected_point_asserted_by_attacker(self):
+        r = self._runner({"timeline": []})
+        r.do_set({"do": "inject", "point": "plc1_mw", "value": 99}, malicious=True)
+        # the spoof is written from the attacker connection, not the telemetry one
+        self.assertIn("plc1_mw", r.attacker.writes)
+        self.assertNotIn("plc1_mw", r.agent.writes)
+
+    def test_no_attacker_routes_to_primary(self):
+        model = sc.PointModel(CONFIG)
+        r = sc.Runner({"timeline": []}, model, FakeAgent("primary"))
+        r.do_scan({"do": "scan", "points": ["plc1_mw"]})
+        self.assertEqual(r.agent.reads, ["plc1_mw"])               # single connection
 
 
 class TestScenarioPhysics(unittest.TestCase):

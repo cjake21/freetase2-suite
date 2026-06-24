@@ -1,0 +1,26 @@
+{
+  "name": "recon_collection",
+  "description": "The stage before the impact, and a clean detection target on its own. An adversary with a foothold sits on the wire and learns the system: it reads the object model and the bilateral table, reads every point repeatedly to understand the process, and singles out the controllable breakers. No command is ever sent and nothing changes physically, which is exactly what makes this hard and important. A good detector should flag a peer reading objects it has no operational need to read, well before any breaker moves. The grid is live so the values are realistic. ATT&CK for ICS: T0888 Remote System Information Discovery, T0846 Remote System Discovery, T0801 Monitor Process State, T0802 Automated Collection, T0861 Point & Tag Identification.",
+  "seed": 100,
+  "period": 2.0,
+  "grid": "config/grid.json",
+  "attacker": true,
+
+  "timeline": [
+    { "at": 0,  "do": "annotate", "note": "normal grid; an attacker has quietly associated" },
+
+    { "at": 5,  "do": "scan", "discover": true, "technique": "T0888",
+      "note": "read the version, supported features, and bilateral table" },
+    { "at": 12, "do": "scan", "all": true, "technique": "T0801",
+      "note": "read every indication point to understand the process state" },
+    { "at": 22, "do": "scan", "all": true, "technique": "T0802",
+      "note": "automated collection: periodic re-read of the whole model" },
+    { "at": 32, "do": "scan", "all": true, "technique": "T0802",
+      "note": "automated collection continues" },
+    { "at": 42, "do": "scan", "points": ["plc1_brk", "plc2_brk", "rtu1_brk"],
+      "technique": "T0861", "note": "point and tag identification: locate the controllable breakers" },
+
+    { "at": 50, "do": "annotate", "note": "reconnaissance complete; no commands issued (yet)" },
+    { "at": 52, "do": "end" }
+  ]
+}

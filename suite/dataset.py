@@ -46,14 +46,29 @@ import sys
 # (client-to-server vs server-to-client).
 DEFAULT_SERVER_PORT = 10502
 
-# A small, human-readable name for the technique tags the scenarios use, so the
-# manifest and summary read nicely. Extend as scenarios grow. Unknown tags pass
-# through unchanged.
+# Human-readable names for the MITRE ATT&CK for ICS technique tags the scenarios
+# use, so the manifest and scorecard read nicely. These are the classic ATT&CK for
+# ICS identifiers (the T08xx series), the set most ICS detection work references.
+# Unknown tags pass through unchanged.
 TECHNIQUES = {
+    "T0801": "Monitor Process State",
+    "T0802": "Automated Collection",
+    "T0804": "Block Reporting Message",
+    "T0813": "Denial of Control",
+    "T0814": "Denial of Service",
+    "T0815": "Denial of View",
+    "T0816": "Device Restart/Shutdown",
+    "T0831": "Manipulation of Control",
+    "T0832": "Manipulation of View",
+    "T0836": "Modify Parameter",
+    "T0837": "Loss of Protection",
+    "T0846": "Remote System Discovery",
     "T0855": "Unauthorized Command Message",
     "T0856": "Spoof Reporting Message",
-    "T0832": "Manipulation of View",
-    "T0814": "Denial of Service",
+    "T0861": "Point & Tag Identification",
+    "T0878": "Alarm Suppression",
+    "T0880": "Loss of Safety",
+    "T0888": "Remote System Information Discovery",
 }
 
 
@@ -213,7 +228,10 @@ def build_malicious_intervals(events, end_wall, pre=0.5, post=1.5):
             close(point, wall)
             if label == "malicious":
                 open_inject[point] = (wall, tech)
-        elif do in ("operate", "setpoint", "quality") and label == "malicious":
+        elif do in ("operate", "setpoint", "quality", "scan", "flood") \
+                and label == "malicious":
+            # a brief burst (reads, a command, a flood tick) is malicious around
+            # its time; closely spaced flood ticks overlap into one window
             intervals.append((wall - pre, wall + post, tech))
         # comms_loss / restore_comms / annotate / end are benign markers here
     for point in list(open_inject):

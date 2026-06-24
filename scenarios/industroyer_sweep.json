@@ -1,0 +1,31 @@
+{
+  "name": "industroyer_sweep",
+  "description": "Models the December 2016 attack on a Kyiv transmission substation by Industroyer / CRASHOVERRIDE (MITRE campaign C0025, software S0604), the first malware purpose-built to speak grid protocols. Its protocol modules drove IEC 60870-5-101/104, IEC 61850, and OPC directly to change the state of switches and breakers, sweeping them and rapidly toggling state to keep them open. This scenario reproduces that pattern over TASE.2: automated discovery, a coordinated breaker sweep across the bay, a rapid open/close toggling flood, and a manipulated operator view, against the live grid so the sweep produces a real cascade. ATT&CK for ICS: T0888 Remote System Information Discovery, T0832 Manipulation of View, T0855 Unauthorized Command Message, T0831 Manipulation of Control, T0814 Denial of Service.",
+  "seed": 2016,
+  "period": 1.5,
+  "grid": "config/grid.json",
+  "attacker": true,
+
+  "timeline": [
+    { "at": 0,  "do": "annotate", "note": "normal operations" },
+
+    { "at": 3,  "do": "scan", "discover": true, "technique": "T0888",
+      "note": "automated discovery: the module reads the object model on association" },
+
+    { "at": 8,  "do": "inject", "point": "plc1_mw", "value": 11.0, "technique": "T0832",
+      "note": "manipulate the operator view: pin the tie-line flow to a calm value" },
+
+    { "at": 12, "do": "operate", "point": "plc1_brk", "command": 0, "sbo": true,
+      "technique": "T0855", "label": "malicious", "note": "breaker sweep 1 of 3" },
+    { "at": 15, "do": "operate", "point": "plc2_brk", "command": 0,
+      "technique": "T0855", "label": "malicious", "note": "breaker sweep 2 of 3" },
+    { "at": 18, "do": "operate", "point": "rtu1_brk", "command": 0, "sbo": true,
+      "technique": "T0831", "label": "malicious", "note": "breaker sweep 3 of 3" },
+
+    { "at": 22, "do": "flood", "target": "plc2_brk", "seconds": 6, "rate": 10,
+      "technique": "T0814", "note": "rapid open/close toggling: the malware's state-flip loop" },
+
+    { "at": 32, "do": "annotate", "note": "substations swept; cascade in progress" },
+    { "at": 34, "do": "end" }
+  ]
+}

@@ -1,9 +1,11 @@
 {
-  "_comment": "Named deployments. Each selects an operating mode (simulation vs ingestion), a security profile, the point model, the tag database, and which bench simulators to start (sims). The universal 'field-demo' ingests Modbus and DNP3 at once into one ICCP point model; point its tag database at real PLCs and RTUs and turn the sims off for a real testbed. northbound is always TASE.2/ICCP over MMS.",
+  "_comment": "Named deployments. Each selects an operating mode (simulation, ingestion, scenario, physics), a security profile, the point model, the tag database/scenario/grid, and which bench simulators to start (sims). 'category' and 'use_when' group them in the control console so a user can find the right one quickly. northbound is always TASE.2/ICCP over MMS.",
 
   "deployments": {
     "sim-demo": {
       "description": "Simulation mode. The server drives every point with synthetic values (simulateValues); connects to nothing. For training, capture, and parser/IDS testing.",
+      "category": "demos",
+      "use_when": "Fastest look at the HMI. Synthetic data, connects to nothing.",
       "mode": "simulation",
       "protocol": "ICCP/MMS",
       "security": "insecure",
@@ -14,6 +16,8 @@
 
     "field-demo": {
       "description": "Universal ingestion: one gateway ingests Modbus (plc1/plc2) and DNP3 (rtu1) at the same time, with plc3 unreachable to show a degraded station. Uses the bundled Modbus and DNP3 simulators so it runs with no hardware.",
+      "category": "demos",
+      "use_when": "The full real pipeline: Modbus and DNP3 ingested into ICCP.",
       "mode": "ingestion",
       "protocol": "Modbus + DNP3",
       "security": "insecure",
@@ -24,8 +28,23 @@
       "tase2_port": 10502
     },
 
+    "physics-demo": {
+      "description": "Physics mode. A DC power-flow co-simulation (config/grid.json) drives the points from a real four-bus grid model. Flows are live; open the main tie breaker (plc1_brk) from the HMI or an attack and watch the parallel line overload and the failure cascade line by line. No gateway, no simulation.",
+      "category": "demos",
+      "use_when": "A live power-flow grid. Open the main tie breaker to watch a cascade.",
+      "mode": "physics",
+      "protocol": "ICCP/MMS",
+      "security": "insecure",
+      "config": "config/scada.json",
+      "grid": "config/grid.json",
+      "http_port": 8800,
+      "tase2_port": 10502
+    },
+
     "scenario-demo": {
       "description": "Scenario mode. A deterministic, scripted timeline (scenarios/fdi_tieline.json) is the value source: normal operations plus a false-data injection, a spoofed alarm, an unauthorized breaker open, and a comms outage. No gateway, no simulation. Writes a ground-truth label timeline for datasets and detection scoring. Reproducible every run.",
+      "category": "attack",
+      "use_when": "A scripted, repeatable run of injection, spoof, unauthorized command, and comms loss.",
       "mode": "scenario",
       "protocol": "ICCP/MMS",
       "security": "insecure",
@@ -37,6 +56,8 @@
 
     "cascade-demo": {
       "description": "Scenario plus physics: a scripted attack on a live power-flow grid. An injection masks the tie-line flow, then an unauthorized breaker open triggers a real cascading blackout, all on the one grid model, with ground truth labelling the attack and recording the cascade. The force multiplier: scripted attacks with physical consequences, ready to capture, label, and score.",
+      "category": "attack",
+      "use_when": "A scripted attack on a live grid that triggers a real cascading blackout.",
       "mode": "scenario",
       "protocol": "ICCP/MMS",
       "security": "insecure",
@@ -46,19 +67,10 @@
       "tase2_port": 10502
     },
 
-    "physics-demo": {
-      "description": "Physics mode. A DC power-flow co-simulation (config/grid.json) drives the points from a real four-bus grid model. Flows are live; open the main tie breaker (plc1_brk) from the HMI or an attack and watch the parallel line overload and the failure cascade line by line. No gateway, no simulation.",
-      "mode": "physics",
-      "protocol": "ICCP/MMS",
-      "security": "insecure",
-      "config": "config/scada.json",
-      "grid": "config/grid.json",
-      "http_port": 8800,
-      "tase2_port": 10502
-    },
-
     "field-hardened": {
       "description": "The universal multi-protocol VIRTUAL deployment, hardened: mutual TLS (Secure ICCP) plus a loopback command allowlist. Run scripts/gen_certs.sh first.",
+      "category": "defense",
+      "use_when": "Mutual TLS and a command allowlist. Test your defenses against the attacks.",
       "mode": "ingestion",
       "protocol": "Modbus + DNP3",
       "security": "hardened",
@@ -71,6 +83,8 @@
 
     "field-federated": {
       "description": "Multi-control-centre federation: the universal ingestion stack with an ENFORCED bilateral table (config/blt.conf). Each peer is scoped by the table to the data it may read and the controls it may operate; reads, controls, and report members outside a peer's agreement are denied or withheld. The local components have full access on loopback; edit config/blt.conf to add partner control centres.",
+      "category": "defense",
+      "use_when": "An enforced bilateral table: per-peer read and control scoping.",
       "mode": "ingestion",
       "protocol": "Modbus + DNP3",
       "security": "insecure",
@@ -84,6 +98,8 @@
 
     "physical": {
       "description": "PHYSICAL testbed: real PLCs and RTUs, no simulators. Template to customize: edit config/scada.json for your points and create ingest/tags.json pointing at your devices. Set security to hardened for a real trust boundary. See docs guide 'Connecting physical PLCs and RTUs'.",
+      "category": "hardware",
+      "use_when": "Real PLCs and RTUs. Edit the tag database to point at your devices.",
       "mode": "ingestion",
       "protocol": "Modbus / DNP3",
       "security": "insecure",

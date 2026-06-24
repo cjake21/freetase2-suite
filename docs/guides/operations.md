@@ -47,16 +47,42 @@ python3 suite/console.py        # http://127.0.0.1:8080
 
 ### Deployments and when to use them
 
-The shipped deployments map to specific jobs. Pick the one that matches what you are
+The shipped deployments map to specific jobs, and the control console groups them by
+purpose so you can find the right one quickly. Pick the one that matches what you are
 doing; the two setup guides ({doc}`physical-testbed`, {doc}`virtual-testbed`) tell
 you which files to edit for each.
 
-| Deployment | Use it for | Mode | Field devices | Profile |
-|------------|-----------|------|---------------|---------|
-| `sim-demo` | Simulated testbed with no devices at all (capture, training, parser/IDS) | simulation | none; values from `simulateValues()` | insecure |
-| `field-demo` | Simulated testbed with virtual devices that emit real Modbus and DNP3 | ingestion | bundled simulators | insecure |
-| `field-hardened` | Same virtual devices, over mutual TLS plus a command allowlist | ingestion | bundled simulators | hardened |
-| `physical` | Physical testbed with real PLCs and RTUs | ingestion | your devices (no simulators) | insecure (set hardened for a real boundary) |
+**Demos and training** (see it work; nothing scripted):
+
+| Deployment | Use it for | Mode | Profile |
+|------------|-----------|------|---------|
+| `sim-demo` | Fastest look at the HMI; synthetic data, connects to nothing | simulation | insecure |
+| `field-demo` | The full real pipeline: Modbus and DNP3 ingested into ICCP | ingestion | insecure |
+| `physics-demo` | A live power-flow grid; open the main tie breaker to watch a cascade | physics | insecure |
+
+**Attack scenarios** (scripted, repeatable; these feed the dataset and scoring tools):
+
+| Deployment | Use it for | Mode | Profile |
+|------------|-----------|------|---------|
+| `scenario-demo` | A scripted run of injection, spoof, unauthorized command, and comms loss | scenario | insecure |
+| `cascade-demo` | A scripted attack on a live grid that triggers a real cascading blackout | scenario + physics | insecure |
+
+**Defense and federation** (hardening and per-peer scoping):
+
+| Deployment | Use it for | Mode | Profile |
+|------------|-----------|------|---------|
+| `field-hardened` | Mutual TLS plus a command allowlist; test your defenses | ingestion | hardened |
+| `field-federated` | An enforced bilateral table: per-peer read and control scoping | ingestion | insecure |
+
+**Physical testbed**:
+
+| Deployment | Use it for | Mode | Profile |
+|------------|-----------|------|---------|
+| `physical` | Real PLCs and RTUs (no simulators) | ingestion | insecure (set hardened for a real boundary) |
+
+After a run, two terminal tools turn it into evidence: `scripts/58_run_dataset.sh`
+captures and labels a dataset, and `scripts/59_score.sh` grades a detector against
+the ground truth. See {doc}`datasets` and {doc}`scoring`.
 
 Which one when:
 

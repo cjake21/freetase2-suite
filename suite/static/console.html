@@ -66,6 +66,19 @@ body{background:var(--bg-main);color:var(--text-main);font-family:var(--font-ui)
 .rack-lbl{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);padding:2px 2px 12px;
   display:flex;justify-content:space-between;}
 
+/* category grouping (so a user finds the right deployment fast) */
+.cat-hd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:15px 4px 9px;border-bottom:1px solid var(--line-soft);margin-bottom:11px;}
+.cat-hd:first-child{padding-top:2px;}
+.cat-l{font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--text-main);}
+.cat-d{font-size:11.5px;color:var(--text-dim);letter-spacing:.02em;}
+.slot-use{font-size:12.5px;color:var(--text-muted);margin-top:5px;letter-spacing:.01em;}
+/* post-run tools (capabilities that are not deployments) */
+.tool{background:linear-gradient(180deg,#222827,#1b201f);border:1px solid var(--line-soft);border-left:3px solid var(--control);
+  padding:9px 12px;margin-bottom:9px;}
+.tool-n{font-size:14px;font-weight:600;color:#dfe7e1;letter-spacing:.02em;margin-bottom:4px;}
+.tool-c{font-family:var(--font-data);font-size:12px;color:#a9cfe0;background:#101413;border:1px solid var(--line-black);padding:5px 8px;display:block;}
+.tool-d{font-size:11.5px;color:var(--text-dim);margin-top:4px;}
+
 /* ===== runtime slots ===== */
 .slot{display:grid;grid-template-columns:46px 10px 1fr auto;margin-bottom:11px;background:linear-gradient(180deg,#262c2b,#1e2322);
   border:1px solid var(--line-soft);box-shadow:inset 0 1px 0 #ffffff07,0 1px 3px #0006;cursor:pointer;}
@@ -211,7 +224,7 @@ let deps={}, order=[], status={running:false}, runs={}, prechecks={}, sel=null, 
 const $=id=>document.getElementById(id);
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 async function api(p,b){const o=b?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}:{};return (await fetch(p,o)).json();}
-function scriptFor(d){return d.mode==="simulation"?"scripts/50_run_hmi.sh":"scripts/55_run_scada.sh";}
+function scriptFor(d){return ({simulation:"scripts/50_run_hmi.sh",ingestion:"scripts/55_run_scada.sh",scenario:"scripts/56_run_scenario.sh",physics:"scripts/57_run_physics.sh"})[d.mode]||"scripts/55_run_scada.sh";}
 function portsFor(d){const p=["TASE.2/"+(d.tase2_port||10502),"HMI/"+(d.http_port||8800)];if((d.sims||[]).includes("modbus"))p.push("MODBUS/1502");if((d.sims||[]).includes("dnp3"))p.push("DNP3/20000");return p;}
 function slotState(name){
   if(status.running&&status.name===name) return "run";
@@ -247,29 +260,52 @@ function renderHeader(){
   } else { hmi.classList.add("off");hmi.textContent="SCADA HMI"; }
   $("docs-link").classList.toggle("off",!status.docs_available);
 }
+const CATS=[
+  {id:"demos",   label:"Demos & Training",     desc:"See it work. Synthetic or real data, nothing scripted."},
+  {id:"attack",  label:"Attack Scenarios",     desc:"Scripted, repeatable attacks. These feed the dataset and scoring tools."},
+  {id:"defense", label:"Defense & Federation", desc:"Encryption, command allowlist, and per-peer bilateral scoping."},
+  {id:"hardware",label:"Physical Testbed",     desc:"Real PLCs and RTUs."}
+];
+function slotHtml(name,i){
+  const d=deps[name], s=slotState(name), no=String(i).padStart(2,"0");
+  return `<div class="slot ${s} ${sel===name?"sel":""}" data-name="${esc(name)}">
+    <div class="slot-no"><div class="sn">${no}</div><div class="sl">Slot</div></div>
+    <div class="slot-rail"></div>
+    <div class="slot-body">
+      <div class="slot-top"><span class="slamp ${s}"></span><span class="slot-name">${esc(name)}</span><span class="slot-state">${STWORD[s]}</span></div>
+      ${d.use_when?`<div class="slot-use">${esc(d.use_when)}</div>`:""}
+      <div class="plates">
+        <span class="plate"><b>proto</b>${esc(d.protocol||"ICCP")}</span>
+        <span class="plate"><b>mode</b>${esc(d.mode||"")}</span>
+        <span class="plate ${d.security}"><b>profile</b>${esc(d.security||"insecure")}</span>
+      </div>
+      <div class="slot-meta"><b>cfg</b> ${esc((d.config||"").split("/").pop())} &nbsp; <b>ports</b> ${esc(portsFor(d).join(" "))}</div>
+    </div>
+    <div class="slot-ctrls">
+      ${s==="run"?`<button class="opbtn stop" data-stop="1">Stop</button>`
+                 :`<button class="opbtn start" data-start="${esc(name)}" ${status.running?"disabled":""}>Start</button>`}
+      <button class="opbtn" data-logs="${esc(name)}">Logs</button>
+    </div>
+  </div>`;
+}
+function toolsHtml(){
+  return `<div class="cat-hd"><span class="cat-l">Data &amp; Detection</span><span class="cat-d">After a run: capture, label, and grade. Run these from a terminal.</span></div>
+    <div class="tool"><div class="tool-n">Build a labelled dataset</div><span class="tool-c command">sudo ./scripts/58_run_dataset.sh</span><div class="tool-d">Capture a scenario run and label every window benign or malicious with a technique tag.</div></div>
+    <div class="tool"><div class="tool-n">Score a detector</div><span class="tool-c command">./scripts/59_score.sh datasets/&lt;run&gt;</span><div class="tool-d">Grade a sensor's alerts against the ground truth: recall per technique, time to detect, false positives.</div></div>`;
+}
 function renderRack(){
   $("rack-count").textContent=order.length+" slots";
-  $("rack").innerHTML=order.map((name,i)=>{
-    const d=deps[name], s=slotState(name), no=String(i+1).padStart(2,"0");
-    return `<div class="slot ${s} ${sel===name?"sel":""}" data-name="${esc(name)}">
-      <div class="slot-no"><div class="sn">${no}</div><div class="sl">Slot</div></div>
-      <div class="slot-rail"></div>
-      <div class="slot-body">
-        <div class="slot-top"><span class="slamp ${s}"></span><span class="slot-name">${esc(name)}</span><span class="slot-state">${STWORD[s]}</span></div>
-        <div class="plates">
-          <span class="plate"><b>proto</b>${esc(d.protocol||"ICCP")}</span>
-          <span class="plate"><b>mode</b>${esc(d.mode||"")}</span>
-          <span class="plate ${d.security}"><b>profile</b>${esc(d.security||"insecure")}</span>
-        </div>
-        <div class="slot-meta"><b>cfg</b> ${esc((d.config||"").split("/").pop())} &nbsp; <b>ports</b> ${esc(portsFor(d).join(" "))}</div>
-      </div>
-      <div class="slot-ctrls">
-        ${s==="run"?`<button class="opbtn stop" data-stop="1">Stop</button>`
-                   :`<button class="opbtn start" data-start="${esc(name)}" ${status.running?"disabled":""}>Start</button>`}
-        <button class="opbtn" data-logs="${esc(name)}">Logs</button>
-      </div>
-    </div>`;
-  }).join("");
+  const byCat={}; order.forEach(n=>{const c=(deps[n]&&deps[n].category)||"other";(byCat[c]=byCat[c]||[]).push(n);});
+  const known=CATS.map(c=>c.id);
+  const catOrder=known.filter(c=>byCat[c]).concat(Object.keys(byCat).filter(c=>!known.includes(c)));
+  let i=0, html="";
+  catOrder.forEach(cid=>{
+    const meta=CATS.find(c=>c.id===cid)||{label:cid,desc:""};
+    html+=`<div class="cat-hd"><span class="cat-l">${esc(meta.label)}</span><span class="cat-d">${esc(meta.desc)}</span></div>`;
+    byCat[cid].forEach(name=>{ html+=slotHtml(name, ++i); });
+  });
+  html+=toolsHtml();
+  $("rack").innerHTML=html;
   $("rack").querySelectorAll(".slot").forEach(el=>el.onclick=e=>{if(e.target.closest("button"))return;sel=el.dataset.name;renderRack();renderBay();});
   $("rack").querySelectorAll("button[data-start]").forEach(b=>b.onclick=async()=>{b.disabled=true;status=await api("/api/start",{name:b.dataset.start});sel=b.dataset.start;await loadPrecheck(b.dataset.start);await refresh();});
   $("rack").querySelectorAll("button[data-stop]").forEach(b=>b.onclick=async()=>{b.disabled=true;status=await api("/api/stop",{});await refresh();});

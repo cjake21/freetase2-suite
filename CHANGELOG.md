@@ -66,6 +66,13 @@ Keep a Changelog, and the project aims to follow semantic versioning.
 - Fuzz harness (`tests/test_fuzz.py`): random, truncated, and mutated inputs to the
   parsers, plus a live flood of the control API.
 
+### Changed
+- Control console: deployments are grouped by purpose (Demos & Training, Attack
+  Scenarios, Defense & Federation, Physical Testbed), each with a one-line "use when"
+  hint, and a Data & Detection panel surfaces the capture, label, and scoring tools,
+  so a user can find what to run quickly. Deployments carry `category` and `use_when`
+  in `suite/profiles.json`, and the console shows the correct launcher per mode.
+
 ### Added (Sprint 1)
 - Reproducible build: libIEC61850 pinned to v1.6.1 and mbedtls to 3.6.0 in
   `scripts/10_build.sh` (override with `LIB61850_REF` / `MBEDTLS_VER`).

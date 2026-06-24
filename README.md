@@ -42,6 +42,10 @@ Each mode runs under a **security profile**: `insecure` (plaintext, open command
 path, for ranges and attack demos) or `hardened` (mutual TLS plus a command
 allowlist, for defense testing).
 
+The server can also **enforce a bilateral table** (`-B`): per-peer scoping of which
+data each control center may read, control, and subscribe to, the way real TASE.2
+federation works. See `docs/guides/federation`.
+
 ## Quick start
 
 ```bash

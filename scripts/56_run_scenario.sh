@@ -63,6 +63,14 @@ else
   echo "[scenario] profile: INSECURE (plaintext, open command path) - for ranges/attack demos"
 fi
 
+# Bilateral table (per-peer data scoping). Set BLT to a table file to enforce it.
+BLT="${BLT:-}"
+if [[ -n "$BLT" ]]; then
+  [[ -f "$BLT" ]] || { echo "[ERR] bilateral table not found: $BLT" >&2; exit 1; }
+  SRV_SEC+=(-B "$BLT")
+  echo "[scenario] bilateral table ENFORCED: $BLT"
+fi
+
 # 2. server: publish the configured points, no simulation, hold injected values
 echo "[scenario] starting TASE.2 server on $TASE2_HOST:$TASE2_PORT (no sim)"
 "$SRV" -i "$TASE2_HOST" -p "$TASE2_PORT" -d "$DOMAIN" -t "$INTEGRITY" -o "$INJECT_HOLD" -n -P "$POINTS" "${SRV_SEC[@]}" &

@@ -159,6 +159,9 @@ def precheck(name):
     if d.get("grid"):
         grd = os.path.join(R, d["grid"])
         add("grid model present", os.path.isfile(grd), d["grid"])
+    if d.get("blt"):
+        blt = os.path.join(R, d["blt"])
+        add("bilateral table present", os.path.isfile(blt), d["blt"])
     argv = ["python3", os.path.join(R, "scripts", "validate_config.py"), cfg]
     if tags:
         argv.append(tags)

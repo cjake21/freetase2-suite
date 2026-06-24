@@ -58,6 +58,19 @@
       "tase2_port": 10502
     },
 
+    "field-federated": {
+      "description": "Multi-control-centre federation: the universal ingestion stack with an ENFORCED bilateral table (config/blt.conf). Each peer is scoped by the table to the data it may read and the controls it may operate; reads, controls, and report members outside a peer's agreement are denied or withheld. The local components have full access on loopback; edit config/blt.conf to add partner control centres.",
+      "mode": "ingestion",
+      "protocol": "Modbus + DNP3",
+      "security": "insecure",
+      "config": "config/scada.json",
+      "tags": "ingest/tags.demo.json",
+      "sims": ["modbus", "dnp3"],
+      "blt": "config/blt.conf",
+      "http_port": 8800,
+      "tase2_port": 10502
+    },
+
     "physical": {
       "description": "PHYSICAL testbed: real PLCs and RTUs, no simulators. Template to customize: edit config/scada.json for your points and create ingest/tags.json pointing at your devices. Set security to hardened for a real trust boundary. See docs guide 'Connecting physical PLCs and RTUs'.",
       "mode": "ingestion",

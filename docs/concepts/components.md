@@ -5,8 +5,10 @@
 Built on the libIEC61850 MMS engine. It builds the object model from a point list
 generated from `config/scada.json`, holds the point cache, sends Block 2 reports,
 and handles writes and Block 5 control including select-before-operate enforcement
-and the command allowlist. Flags: `-P` points file, `-n` no simulation, `-o`
-injection hold, `-L` command allowlist, `-T -C -K -A` TLS.
+and the command allowlist. It also enforces the bilateral table when given one,
+scoping each peer's reads, controls, and report members to its agreement. Flags:
+`-P` points file, `-n` no simulation, `-o` injection hold, `-L` command allowlist,
+`-B` bilateral table, `-T -C -K -A` TLS.
 
 ## ICCP agent (`src/tase2_hmi_agent.c`)
 

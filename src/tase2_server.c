@@ -94,6 +94,7 @@ typedef struct {
     char*       allow[16];          /* -L : peers (IPs) permitted to write/operate;
                                      *      empty = allow all (range default) */
     int         allowCount;
+    const char* bltFile;            /* -B : bilateral table (per-peer data scoping) */
 } Tase2Config;
 
 /* Server state */
@@ -579,6 +580,169 @@ peerAllowed(MmsServerConnection con)
     return 0;
 }
 
+/* ---- Bilateral table (per-peer data scoping) ---------------------------- *
+ * A TASE.2 bilateral table is the agreement between two control centres that
+ * says which data each may see and command. The server publishes its table ID;
+ * with -B it also ENFORCES the table: each peer (by IP) gets a rule listing the
+ * objects it may read (r), control (c), and write/inject (w). Reads, operates,
+ * injections, and report members outside a peer's rule are denied or withheld.
+ * With no -B the command path follows the open/-L behaviour as before. */
+#define BLT_R 1          /* read and subscribe the listed objects */
+#define BLT_C 2          /* control (operate) the listed objects   */
+#define BLT_W 4          /* write/inject values to the listed objects */
+
+typedef struct {
+    char ip[64];
+    int  rights;
+    char obj[32][64];
+    int  nObj;
+    int  all;            /* '*' : every data object */
+} BltRule;
+
+static BltRule g_blt[32];
+static int     g_nBlt = 0;
+static int     g_bltLoaded = 0;
+
+/* Parse a -B file. Lines: "ip rights objects", where rights is any of r/c/w and
+ * objects is a comma-separated list of names or "prefix*" patterns, or "*" for
+ * all. Blank lines and lines starting with '#' are ignored. */
+static void
+loadBlt(const char* path)
+{
+    FILE* f = fopen(path, "r");
+    if (f == NULL) {
+        fprintf(stderr, "[tase2] cannot open bilateral table %s\n", path);
+        exit(1);
+    }
+    char line[512];
+    while (fgets(line, sizeof(line), f)) {
+        char ip[64], rights[16], objs[400];
+        int got = sscanf(line, " %63s %15s %399s", ip, rights, objs);
+        if (got < 2 || ip[0] == '#')
+            continue;
+        if (g_nBlt >= 32) { fprintf(stderr, "[tase2] too many BLT rules\n"); exit(1); }
+        BltRule* r = &g_blt[g_nBlt++];
+        snprintf(r->ip, sizeof(r->ip), "%s", ip);
+        r->rights = 0;
+        for (char* p = rights; *p; p++) {
+            if (*p == 'r') r->rights |= BLT_R;
+            else if (*p == 'c') r->rights |= BLT_C;
+            else if (*p == 'w') r->rights |= BLT_W;
+        }
+        r->nObj = 0;
+        r->all = 0;
+        if (got >= 3) {
+            if (!strcmp(objs, "*")) r->all = 1;
+            else for (char* tok = strtok(objs, ","); tok && r->nObj < 32;
+                      tok = strtok(NULL, ","))
+                snprintf(r->obj[r->nObj++], sizeof(r->obj[0]), "%s", tok);
+        }
+    }
+    fclose(f);
+    g_bltLoaded = 1;
+}
+
+/* The BLT object key for an item: drop a "$Member" suffix and a trailing "_ctl",
+ * so a rule listing "plc1_brk" covers its value and its control object. */
+static void
+bltBaseName(const char* in, char* out, size_t n)
+{
+    snprintf(out, n, "%s", in);
+    char* d = strchr(out, '$');
+    if (d) *d = '\0';
+    size_t l = strlen(out);
+    if (l > 4 && !strcmp(out + l - 4, "_ctl")) out[l - 4] = '\0';
+}
+
+static BltRule*
+bltRuleFor(MmsServerConnection con)
+{
+    char* peer = MmsServerConnection_getClientAddress(con);
+    if (peer == NULL) return NULL;
+    char ip[64];
+    size_t i = 0;
+    for (; peer[i] && peer[i] != ':' && i + 1 < sizeof(ip); i++) ip[i] = peer[i];
+    ip[i] = '\0';
+    for (int j = 0; j < g_nBlt; j++)
+        if (!strcmp(g_blt[j].ip, ip)) return &g_blt[j];
+    return NULL;
+}
+
+static int
+objMatches(BltRule* r, const char* name)
+{
+    if (r->all) return 1;
+    for (int i = 0; i < r->nObj; i++) {
+        size_t plen = strlen(r->obj[i]);
+        if (plen > 0 && r->obj[i][plen - 1] == '*') {
+            if (strncmp(name, r->obj[i], plen - 1) == 0) return 1;
+        } else if (strcmp(name, r->obj[i]) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Metadata/handshake objects every peer may always read, so association and
+ * discovery work; only the data objects are scoped by the table. */
+static int
+isHandshakeObject(const char* base)
+{
+    static const char* meta[] = {
+        "TASE2_Version", "Supported_Features", "Bilateral_Table_ID",
+        "Next_DSTransfer_Set", "Transfer_Set_Name", "Transfer_Set_Time_Stamp",
+        "DSConditions_Detected", "Event_Code_Detected",
+        "Transfer_Report_ACK", "Transfer_Report_NACK",
+    };
+    for (size_t i = 0; i < sizeof(meta) / sizeof(meta[0]); i++)
+        if (!strcmp(base, meta[i])) return 1;
+    return !strncmp(base, "DSTransferSet", 13);   /* subscription config */
+}
+
+/* Does this connection hold 'right' on the (already base-keyed) object? With no
+ * table loaded, everything is permitted (the open default). An unknown peer with
+ * a table loaded is denied (default deny). */
+static int
+bltAllows(MmsServerConnection con, const char* base, int right)
+{
+    if (!g_bltLoaded) return 1;
+    BltRule* r = bltRuleFor(con);
+    if (r == NULL) return 0;
+    return (r->rights & right) && objMatches(r, base);
+}
+
+/* A withheld report member: same shape, but value zeroed and quality NOT-VALID,
+ * so a scoped peer sees the point exists without its data. */
+static MmsValue*
+withheldClone(MmsValue* v)
+{
+    MmsValue* c = MmsValue_clone(v);
+    if (MmsValue_getType(c) == MMS_STRUCTURE && MmsValue_getArraySize(c) >= 2) {
+        MmsValue* val = MmsValue_getElement(c, 0);
+        if (val && MmsValue_getType(val) == MMS_FLOAT)        MmsValue_setFloat(val, 0.0f);
+        else if (val && MmsValue_getType(val) == MMS_INTEGER) MmsValue_setInt32(val, 0);
+        MmsValue* q = MmsValue_getElement(c, 1);
+        if (q && MmsValue_getType(q) == MMS_BIT_STRING)
+            MmsValue_setBitStringFromInteger(q, 12);          /* validity NOTVALID */
+    }
+    return c;
+}
+
+/* Read-access gate: deny a peer reading a data object outside its bilateral
+ * table. Handshake objects and the unscoped (no -B) case are always allowed. */
+static MmsDataAccessError
+readAccessHandler(void* parameter, MmsDomain* domain, char* variableId,
+                  MmsServerConnection connection, bool isDirectAccess)
+{
+    (void) parameter; (void) domain; (void) isDirectAccess;
+    if (!g_bltLoaded) return DATA_ACCESS_ERROR_SUCCESS;
+    char base[64];
+    bltBaseName(variableId, base, sizeof(base));
+    if (isHandshakeObject(base)) return DATA_ACCESS_ERROR_SUCCESS;
+    if (bltAllows(connection, base, BLT_R)) return DATA_ACCESS_ERROR_SUCCESS;
+    return DATA_ACCESS_ERROR_OBJECT_ACCESS_DENIED;
+}
+
 /* Write handler: device control (Block 5) and transfer-set enable (Block 2).
  * domain==NULL means VMD scope.
  *
@@ -602,9 +766,22 @@ writeHandler(void* parameter, MmsDomain* domain, const char* variableId,
     /* Command/injection writes (device control, indication-point values) are
      * gated by the peer allowlist. Transfer-set configuration (Block 2
      * subscription) is exempt so any peer may still subscribe and read. */
-    if (strncmp(baseName, "DSTransferSet", 13) != 0 && !peerAllowed(connection)) {
-        printf("[tase2] write to %s denied: peer not in allowlist\n", baseName);
-        return DATA_ACCESS_ERROR_OBJECT_ACCESS_DENIED;
+    if (strncmp(baseName, "DSTransferSet", 13) != 0) {
+        if (!peerAllowed(connection)) {
+            printf("[tase2] write to %s denied: peer not in allowlist\n", baseName);
+            return DATA_ACCESS_ERROR_OBJECT_ACCESS_DENIED;
+        }
+        if (g_bltLoaded) {
+            /* control objects need 'c'; indication-point value writes need 'w' */
+            size_t bl = strlen(baseName);
+            int right = (bl > 4 && !strcmp(baseName + bl - 4, "_ctl")) ? BLT_C : BLT_W;
+            char bkey[64];
+            bltBaseName(baseName, bkey, sizeof(bkey));
+            if (!bltAllows(connection, bkey, right)) {
+                printf("[tase2] write to %s denied by bilateral table\n", baseName);
+                return DATA_ACCESS_ERROR_OBJECT_ACCESS_DENIED;
+            }
+        }
     }
 
     /* Block 5 device control: client operates dev1 -> log + accept */
@@ -782,7 +959,17 @@ sendTransferSetReport(MmsServerConnection con, TransferSet* ts, int conditions)
                 MmsDomain* dom = MmsNamedVariableListEntry_getDomain(entry);
                 char* nm = MmsNamedVariableListEntry_getVariableName(entry);
                 MmsValue* v = MmsServer_getValueFromCache(g_server, dom, nm);
-                if (v) LinkedList_add(values, MmsValue_clone(v));
+                if (v) {
+                    /* scope report members to what this peer may read; others are
+                     * sent withheld (zeroed, NOT-VALID) so the table is enforced
+                     * on Block 2 reports too, not just direct reads */
+                    char bkey[64];
+                    bltBaseName(nm, bkey, sizeof(bkey));
+                    if (isHandshakeObject(bkey) || bltAllows(con, bkey, BLT_R))
+                        LinkedList_add(values, MmsValue_clone(v));
+                    else
+                        LinkedList_add(values, withheldClone(v));
+                }
                 e = LinkedList_getNext(e);
             }
         }
@@ -867,6 +1054,7 @@ parseArgs(int argc, char** argv)
     g_cfg.pointsFile = NULL;
     g_cfg.noSim = 0;
     g_cfg.allowCount = 0;
+    g_cfg.bltFile = NULL;
 
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "-i") && i + 1 < argc) g_cfg.bindIp = argv[++i];
@@ -880,6 +1068,7 @@ parseArgs(int argc, char** argv)
         else if (!strcmp(argv[i], "-A") && i + 1 < argc) g_cfg.caFile = argv[++i];
         else if (!strcmp(argv[i], "-o") && i + 1 < argc) g_cfg.overrideHoldSeconds = atoi(argv[++i]);
         else if (!strcmp(argv[i], "-P") && i + 1 < argc) g_cfg.pointsFile = argv[++i];
+        else if (!strcmp(argv[i], "-B") && i + 1 < argc) g_cfg.bltFile = argv[++i];
         else if (!strcmp(argv[i], "-n")) g_cfg.noSim = 1;
         else if (!strcmp(argv[i], "-L") && i + 1 < argc) {
             char* list = strdup(argv[++i]);
@@ -890,7 +1079,7 @@ parseArgs(int argc, char** argv)
         else if (!strcmp(argv[i], "-h")) {
             printf("usage: %s [-i bindIp] [-p port] [-d domain] [-b bltId] [-t integritySecs]\n"
                    "          [-o injectHoldSecs] [-P pointsFile] [-n] [-L allowIp[,ip...]]\n"
-                   "          [-T] [-C serverCert.pem] [-K serverKey.pem] [-A caCert.pem]\n", argv[0]);
+                   "          [-B bilateralTable] [-T] [-C serverCert.pem] [-K serverKey.pem] [-A caCert.pem]\n", argv[0]);
             exit(0);
         }
     }
@@ -908,6 +1097,7 @@ main(int argc, char** argv)
 
     loadPoints();
     buildModel();
+    if (g_cfg.bltFile) loadBlt(g_cfg.bltFile);
 
     TLSConfiguration tlsConfig = NULL;
     if (g_cfg.tls) {
@@ -929,6 +1119,7 @@ main(int argc, char** argv)
     MmsServer_setServerIdentity(g_server, "FreeTASE2", "tase2-server-sim", "0.1");
     MmsServer_installWriteHandler(g_server, writeHandler, NULL);
     MmsServer_installConnectionHandler(g_server, connectionHandler, NULL);
+    MmsServer_installReadAccessHandler(g_server, readAccessHandler, NULL);
 
     populateCache();
 
@@ -946,6 +1137,10 @@ main(int argc, char** argv)
         printf("[tase2] command allowlist: %d peer(s) may write/operate\n", g_cfg.allowCount);
     else
         printf("[tase2] command allowlist: OPEN (any peer may write/operate)\n");
+    if (g_bltLoaded)
+        printf("[tase2] bilateral table ENFORCED: %d peer rule(s); reads, controls, and report members are scoped\n", g_nBlt);
+    else
+        printf("[tase2] bilateral table: published only (not enforced; use -B to enforce)\n");
 
     /* libIEC61850 here is built single-threaded (CONFIG_MMS_SINGLE_THREADED=1),
      * so we drive the MMS stack and our periodic work from one loop. */

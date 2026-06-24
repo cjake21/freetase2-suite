@@ -6,6 +6,14 @@ Keep a Changelog, and the project aims to follow semantic versioning.
 ## [Unreleased]
 
 ### Added
+- Enforced bilateral table (`-B file`, `config/blt.conf`, the `field-federated`
+  deployment): the server scopes each peer (by IP) to the objects it may read,
+  control, and inject. Reads, operates, value injections, and Block 2 report members
+  outside a peer's rule are denied or withheld, with default-deny for unknown peers
+  and the handshake objects always readable. This is the per-peer data scoping the
+  published table describes, turning a documented limitation into an enforced
+  control. Verified against the independent pyiec61850 stack in `tests/test_blt.py`.
+  See `docs/guides/federation` and `SECURITY.md`.
 - Physics mode: a DC power-flow co-simulation (`suite/physics.py`, `config/grid.json`,
   the `physics-demo` deployment, launcher `scripts/57_run_physics.sh`) is the value
   source. It solves a grid model each tick, maps line flows and bus quantities onto

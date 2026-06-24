@@ -10,6 +10,7 @@ scenarios
 physics
 datasets
 scoring
+federation
 physical-testbed
 virtual-testbed
 tase2-on-the-wire

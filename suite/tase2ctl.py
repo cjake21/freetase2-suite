@@ -82,6 +82,9 @@ def build_launch(name):
     # physics mode: the deployment names a grid model the co-simulation solves.
     if d.get("grid"):
         env["GRID"] = os.path.join(ROOT, d["grid"])
+    # bilateral table: per-peer data scoping enforced by the server.
+    if d.get("blt"):
+        env["BLT"] = os.path.join(ROOT, d["blt"])
 
     # bench field-device simulators for the demo (no hardware): a deployment lists
     # which to start under "sims" (e.g. ["modbus","dnp3"]).

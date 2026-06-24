@@ -51,6 +51,13 @@ These work in any profile and can be combined:
 - **Select-before-operate.** Controls configured with `"mode": "sbo"` require a
   select from the same association before an operate, within a timeout. The server
   rejects an operate that was not selected, so a stray or replayed operate fails.
+- **Bilateral table (`-B file`).** Enforces the TASE.2 bilateral agreement: each
+  peer (by IP) gets a rule listing the objects it may read (`r`), control (`c`), and
+  write/inject (`w`). Reads, operates, injections, and Block 2 report members
+  outside a peer's rule are denied or withheld, and a peer with no rule is denied all
+  data objects (handshake metadata stays readable so it can still associate). This is
+  the per-peer data scoping that the published table describes. See
+  `config/blt.conf` and the federation guide.
 - **TLS / Secure ICCP (`-T -C -K -A`).** Server certificate and, when a CA is
   given, mutual TLS with chain validation. The agents speak TLS when
   `TASE2_TLS=1`.
@@ -76,6 +83,9 @@ asserting the node stays up. Run the full suite with
 - The command allowlist is by source IP and gates writes, not association. Without
   TLS, source IPs can be spoofed; use the hardened profile for any real trust
   boundary.
-- The bilateral table is published but its per-peer data scoping is not enforced.
+- The bilateral table is enforced only when `-B` is given (per-peer scoping by
+  source IP). Without `-B` the table is published but not enforced, the prior
+  behaviour. As with the command allowlist, IP-based identity can be spoofed without
+  TLS, so pair `-B` with the hardened profile for a real trust boundary.
 - Lab certificates from `gen_certs.sh` are for testbeds only.
 - See the README "OT safety" section before connecting to anything live.

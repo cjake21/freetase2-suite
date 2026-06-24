@@ -96,6 +96,19 @@
       "tase2_port": 10502
     },
 
+    "federation-demo": {
+      "description": "Multi-control-centre federation: two TASE.2 servers (CC-A and CC-B), each its own control centre, with a live tie between them. The relay carries CC-A's tie-line data across the intertie into CC-B over real ICCP, so CC-B's HMI shows another utility's data it does not measure locally. What A shares is its bilateral agreement; set a bilateral table on A to enforce it. Open the HMI to watch CC-A's flow arrive at CC-B.",
+      "category": "defense",
+      "use_when": "Two control centres with a live tie; watch CC-A's data arrive at CC-B.",
+      "mode": "federation",
+      "protocol": "ICCP/MMS",
+      "security": "insecure",
+      "config": "config/scada_b.json",
+      "federation": "config/federation.json",
+      "http_port": 8800,
+      "tase2_port": 10602
+    },
+
     "physical": {
       "description": "PHYSICAL testbed: real PLCs and RTUs, no simulators. Template to customize: edit config/scada.json for your points and create ingest/tags.json pointing at your devices. Set security to hardened for a real trust boundary. See docs guide 'Connecting physical PLCs and RTUs'.",
       "category": "hardware",

@@ -1,0 +1,20 @@
+{
+  "_comment": "A federation of two TASE.2 control centres. Each center runs its own server with its own domain and point model. A 'tie' shares a scoped set of points from one center to another: the relay (suite/relay.py) subscribes to the source center and writes the mapped points into the destination center over real ICCP, so a partner sees the intertie data without measuring it locally. What a center is willing to share is its bilateral agreement; enforce it with a bilateral table on that center's server (-B). Add more centers and ties to model a wider interconnect.",
+
+  "centers": {
+    "A": { "host": "127.0.0.1", "port": 10502, "config": "config/scada.json" },
+    "B": { "host": "127.0.0.1", "port": 10602, "config": "config/scada_b.json" }
+  },
+
+  "ties": [
+    {
+      "from": "A",
+      "to": "B",
+      "points": {
+        "plc1_mw": "tieA_mw",
+        "plc1_kv": "tieA_kv",
+        "plc1_brk": "tieA_brk"
+      }
+    }
+  ]
+}

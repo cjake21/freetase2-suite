@@ -22,6 +22,9 @@ Operating modes:
   physics      a power-flow co-simulation (suite/physics.py) is the value source: a
                real grid model drives the points, and a breaker command makes flows
                redistribute and overloaded lines cascade
+  federation   two or more control centres (each its own server) with a live tie
+               between them: the relay (suite/relay.py) carries scoped data across
+               the intertie over real ICCP
 
 Security profiles:
   insecure     plaintext, open command path (ranges and attack demos)
@@ -49,6 +52,7 @@ LAUNCHERS = {
     "ingestion": "scripts/55_run_scada.sh",
     "scenario": "scripts/56_run_scenario.sh",
     "physics": "scripts/57_run_physics.sh",
+    "federation": "scripts/61_run_federation.sh",
 }
 
 
@@ -85,6 +89,9 @@ def build_launch(name):
     # bilateral table: per-peer data scoping enforced by the server.
     if d.get("blt"):
         env["BLT"] = os.path.join(ROOT, d["blt"])
+    # federation mode: the deployment names a federation (centers + ties).
+    if d.get("federation"):
+        env["FEDERATION"] = os.path.join(ROOT, d["federation"])
 
     # bench field-device simulators for the demo (no hardware): a deployment lists
     # which to start under "sims" (e.g. ["modbus","dnp3"]).

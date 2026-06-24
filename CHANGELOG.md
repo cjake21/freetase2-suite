@@ -6,6 +6,13 @@ Keep a Changelog, and the project aims to follow semantic versioning.
 ## [Unreleased]
 
 ### Added
+- Multi-control-center federation: `suite/relay.py` is an inter-control-center tie.
+  For each link in `config/federation.json` it subscribes to the source center and
+  mirrors the agreed points into the destination center over real ICCP, so a partner
+  sees another center's data without measuring it locally. It connects as an ordinary
+  peer, so a bilateral table on the source scopes what the tie carries. New partner
+  model `config/scada_b.json`, launcher `scripts/61_run_federation.sh`, deployment
+  `federation-demo`, and tests in `tests/test_relay.py`. See `docs/guides/federation`.
 - Physics-backed scenarios: a scenario may name a `grid`, and then the power-flow
   co-simulation is the value source underneath the script (`suite/scenario.py` now
   reuses `suite/physics.py`). A scripted breaker `operate` switches a real line so

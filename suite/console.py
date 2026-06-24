@@ -162,6 +162,9 @@ def precheck(name):
     if d.get("blt"):
         blt = os.path.join(R, d["blt"])
         add("bilateral table present", os.path.isfile(blt), d["blt"])
+    if d.get("federation"):
+        fed = os.path.join(R, d["federation"])
+        add("federation config present", os.path.isfile(fed), d["federation"])
     argv = ["python3", os.path.join(R, "scripts", "validate_config.py"), cfg]
     if tags:
         argv.append(tags)

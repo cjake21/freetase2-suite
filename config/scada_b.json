@@ -1,0 +1,18 @@
+{
+  "_comment": "Partner control centre B: its view of the intertie with control centre A. These points receive A's shared data across the tie via the federation relay (suite/relay.py). Server B runs with no simulation, so the values come only from the relay, which is exactly how a real partner sees another utility's data: not measured locally, but received over ICCP across the bilateral tie.",
+
+  "domain": "PartnerICC",
+
+  "stations": [
+    {
+      "id": "tieA",
+      "name": "INTERTIE WITH CC-A",
+      "points": [
+        { "name": "tieA_mw",  "type": "real",  "label": "TIE FLOW (CC-A)",  "unit": "MW", "hi": 15.0 },
+        { "name": "tieA_kv",  "type": "real",  "label": "TIE BUS VOLTAGE",  "unit": "kV" },
+        { "name": "tieA_brk", "type": "state", "label": "TIE BREAKER",      "unit": "",
+          "states": { "0": "OPEN", "1": "CLOSED" } }
+      ]
+    }
+  ]
+}

@@ -71,6 +71,16 @@ solver is plain Python with no numerical libraries, so the suite stays standard
 library only. The launcher is `scripts/57_run_physics.sh`. See
 {doc}`../guides/physics`.
 
+## Federation relay (`suite/relay.py`)
+
+The inter-control-center tie. For each link in a federation (`config/federation.json`)
+it subscribes to the source center, receives its Block 2 reports, and writes the
+mapped points into the destination center over real ICCP, so a partner sees another
+center's data without measuring it locally. It connects to the source as an ordinary
+peer, so a bilateral table on that center scopes what the tie carries. The launcher
+`scripts/61_run_federation.sh` stands up two centers and the tie. Standard library
+only. See {doc}`../guides/federation`.
+
 ## Detection scorer (`suite/score.py`)
 
 Grades a sensor against a scenario's ground truth. It reads alerts (Suricata

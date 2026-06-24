@@ -78,12 +78,49 @@ hardened profile (mutual TLS), where each peer is also cryptographically
 authenticated. Enforcement by IP plus authentication by certificate is the
 combination that actually holds.
 
-## Toward many control centers
+## Many control centers: the live tie
 
-A single server with a bilateral table already models one center sharing scoped
-data with several partners, which is the core of federation. The natural next step
-is standing up several centers at once, each with its own points and its own
-agreements, exchanging data across the ties, so you can emulate a regional
-interconnect and test cross-utility attacks such as a compromised partner poisoning
-data across the boundary. The enforcement built here is the foundation that makes
-that scoping real rather than cosmetic.
+A single server with a bilateral table models one center sharing scoped data with
+several partners. A real federation goes further: several control centers, each its
+own server with its own points, exchanging agreed data across the ties between them.
+The suite does this with a relay.
+
+```bash
+python3 suite/tase2ctl.py run federation-demo
+```
+
+That brings up two control centers. CC-A runs its own server with live data. CC-B
+runs its own server with no local source. The relay (`suite/relay.py`) subscribes to
+CC-A, receives its reports, and writes the agreed tie points into CC-B over real
+ICCP. Open <http://127.0.0.1:8800> and you are looking at CC-B's screen: its
+intertie view shows CC-A's tie-line flow, voltage, and breaker, data that CC-B never
+measured but received across the tie, the same way one utility sees another's across
+a real interconnect.
+
+The federation is described in `config/federation.json`:
+
+```json
+{
+  "centers": {
+    "A": { "host": "127.0.0.1", "port": 10502, "config": "config/scada.json" },
+    "B": { "host": "127.0.0.1", "port": 10602, "config": "config/scada_b.json" }
+  },
+  "ties": [
+    { "from": "A", "to": "B",
+      "points": { "plc1_mw": "tieA_mw", "plc1_kv": "tieA_kv", "plc1_brk": "tieA_brk" } }
+  ]
+}
+```
+
+Each center is a server (its own port, domain, and point model). Each tie names a
+source center, a destination center, and the points to carry, mapping each source
+point to the destination point that receives it. Add more centers and more ties,
+including ties the other direction, to model a wider interconnect.
+
+This is where the bilateral table and the relay meet. The relay connects to the
+source center as an ordinary peer, so if that center enforces a bilateral table, the
+relay only receives what the table allows. Put a table on CC-A (set `BLT` when you
+launch, or `-B` on its server) and the tie carries exactly the agreed subset and no
+more. That combination, a real tie plus enforced scoping, is what lets you emulate a
+regional interconnect and study cross-utility attacks such as a compromised partner
+poisoning data across the boundary, with the scoping real rather than cosmetic.

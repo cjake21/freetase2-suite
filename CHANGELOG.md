@@ -6,6 +6,13 @@ Keep a Changelog, and the project aims to follow semantic versioning.
 ## [Unreleased]
 
 ### Added
+- Physics-backed scenarios: a scenario may name a `grid`, and then the power-flow
+  co-simulation is the value source underneath the script (`suite/scenario.py` now
+  reuses `suite/physics.py`). A scripted breaker `operate` switches a real line so
+  the grid cascades, an `inject` pins its point over the physics so a spoof keeps
+  lying while the grid collapses, and cascade trips are recorded as labelled
+  consequences. New scenario `scenarios/fdi_cascade.json` and deployment
+  `cascade-demo`. Tests in `tests/test_scenario.py`. See `docs/guides/scenarios`.
 - Enforced bilateral table (`-B file`, `config/blt.conf`, the `field-federated`
   deployment): the server scopes each peer (by IP) to the objects it may read,
   control, and inject. Reads, operates, value injections, and Block 2 report members

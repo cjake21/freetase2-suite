@@ -111,5 +111,61 @@ class TestGroundTruthLabel(unittest.TestCase):
         self.assertEqual(labels, ["malicious", "benign", "malicious"])
 
 
+class FakeAgent:
+    """A no-op agent so the runner logic can be tested without a live server."""
+    def write_q(self, *a): pass
+    def operate(self, *a, **k): pass
+    def setpoint(self, *a, **k): pass
+    def select(self, *a): pass
+    def cancel(self, *a): pass
+    def wait_online(self, *a, **k): return True
+    def stop(self): pass
+
+
+class TestScenarioPhysics(unittest.TestCase):
+    """The force multiplier: a scenario with a grid is backed by the power-flow
+    co-simulation, so scripted attacks have physical consequences."""
+    def _runner(self, timeline=None):
+        model = sc.PointModel(CONFIG)
+        scenario = {"name": "t", "seed": 1, "grid": "config/grid.json",
+                    "timeline": timeline or []}
+        return sc.Runner(scenario, model, FakeAgent())
+
+    def test_grid_loaded(self):
+        r = self._runner()
+        self.assertIsNotNone(r.grid)
+        self.assertIn("plc1_mw", r.grid_meas)
+        self.assertEqual(r.grid_breaker_line.get("plc1_brk"), "L5")
+
+    def test_physics_drives_points(self):
+        r = self._runner()
+        r._refresh_physics()
+        self.assertEqual(round(r.value["plc1_mw"]), 90)     # the tie flow
+        self.assertEqual(round(r.value["plc2_mw"]), 60)     # a ring line
+
+    def test_injection_pins_over_physics(self):
+        r = self._runner()
+        r.do_set({"do": "inject", "point": "plc1_mw", "value": 12.3}, malicious=True)
+        r._refresh_physics()                                # physics would say 90
+        self.assertEqual(r.value["plc1_mw"], 12.3)          # but the spoof holds
+        self.assertIn("plc1_mw", r.scripted)
+
+    def test_operate_breaker_cascades(self):
+        r = self._runner()
+        r._refresh_physics()
+        self.assertEqual(round(r.value["plc2_mw"]), 60)     # L1 carrying flow
+        r.do_operate({"do": "operate", "point": "plc1_brk", "command": 0})
+        self.assertFalse(r.grid.line_by_id["L5"].in_service)  # tie opened
+        r._refresh_physics()                                # L1 overloads and trips
+        self.assertEqual(r.value["plc2_brk"], 0)            # its breaker reads open
+        self.assertEqual(round(r.value["plc2_mw"]), 0)      # and its flow is gone
+
+    def test_no_grid_is_unaffected(self):
+        model = sc.PointModel(CONFIG)
+        r = sc.Runner({"name": "t", "timeline": []}, model, FakeAgent())
+        self.assertIsNone(r.grid)
+        r._refresh_physics()                                # a safe no-op
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

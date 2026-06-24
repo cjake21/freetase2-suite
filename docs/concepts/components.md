@@ -44,8 +44,10 @@ The value source in scenario mode. It plays a deterministic, seeded timeline
 with a heartbeat, and turns each timeline event into real ICCP traffic (value
 injection, operator commands, ramps, comms loss). It writes a ground-truth label
 timeline (benign or malicious, with a technique tag) that the dataset and detection
-tools build on. It drives one ICCP agent over the same line protocol as the bridge,
-so it needs no new protocol code. Standard library only. See
+tools build on. A scenario may also name a `grid`, and then it reuses the power-flow
+co-simulation as the value source, so a scripted breaker operate cascades and an
+injection masks the real value. It drives one ICCP agent over the same line protocol
+as the bridge, so it needs no new protocol code. Standard library only. See
 {doc}`../guides/scenarios`.
 
 ## Dataset labeller (`suite/dataset.py`)

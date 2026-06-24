@@ -97,6 +97,47 @@ duration before the next step begins, so space your `at` times to account for th
 Meanwhile the heartbeat keeps every other point fresh in the background, so the rest
 of the grid stays online while one point is ramping.
 
+## Backing a scenario with physics
+
+A scenario can name a grid model, and then the power-flow co-simulation becomes the
+value source underneath the script. Add a `grid` to the scenario:
+
+```json
+{
+  "name": "fdi_cascade",
+  "period": 2.0,
+  "grid": "config/grid.json",
+  "timeline": [
+    { "at": 6,  "do": "inject", "point": "plc1_mw", "value": 60.0, "technique": "T0856" },
+    { "at": 14, "do": "operate", "point": "plc1_brk", "command": 0, "sbo": true,
+      "technique": "T0855", "label": "malicious" },
+    { "at": 34, "do": "end" }
+  ]
+}
+```
+
+Now the points are driven by the solved grid, not a flat baseline, and the script
+rides on top of the physics. This changes what the actions mean in the best way:
+
+- An `operate` on a breaker actually switches a line in the model, so the flow
+  redistributes and an overload can cascade. The unauthorized open above produces a
+  real cascading blackout, not just a state flip.
+- An `inject` pins its point over the physics. In the example the attacker spoofs the
+  tie-line flow to a calm 60 MW, and that point keeps reading 60 even as the real
+  grid collapses around it, so the operator sees one normal value amid the chaos.
+- The cascade trips the script did not write are recorded in the ground truth as
+  their own events, labelled as the physical consequences of the attack.
+
+This is the force multiplier: every scenario, dataset, and scorecard built this way
+carries physically consistent behaviour for free. Run it with the ready-made
+deployment:
+
+```bash
+python3 suite/tase2ctl.py run cascade-demo
+```
+
+See {doc}`physics` for the grid model itself.
+
 ## The ground-truth timeline
 
 When you pass `--out`, the engine writes one JSON object per line recording each

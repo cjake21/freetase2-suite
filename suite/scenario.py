@@ -45,6 +45,12 @@ ROOT = os.path.normpath(os.path.join(HERE, ".."))
 AGENT_BIN = os.path.join(ROOT, "src", "tase2_hmi_agent")
 DEFAULT_CONFIG = os.path.join(ROOT, "config", "scada.json")
 
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
+import physics  # noqa: E402  (sibling module: the grid co-simulation, used when a
+#                              scenario names a grid so scripted attacks have
+#                              physically consistent consequences)
+
 # How often the heartbeat re-asserts every live point. It must stay comfortably
 # under the HMI's freshness window (STALE_SEC, 12s) so points read ONLINE between
 # timeline events. Dropping a point from the heartbeat is how "comms loss" works:
@@ -231,6 +237,18 @@ def validate(scenario, model):
                 errors.append("%s (%s): unknown station %r" % (where, do, sid))
             if sid is None and not step.get("points"):
                 errors.append("%s (%s): needs a 'station' or a 'points' list" % (where, do))
+
+    grid_path = scenario.get("grid")
+    if grid_path:
+        if not os.path.isabs(grid_path):
+            grid_path = os.path.join(ROOT, grid_path)
+        try:
+            with open(grid_path) as f:
+                gcfg = json.load(f)
+            for e in physics.validate(gcfg, set(model.type)):
+                errors.append("grid: " + e)
+        except (OSError, ValueError) as e:
+            errors.append("grid: cannot load %s: %s" % (grid_path, e))
     return errors
 
 
@@ -248,12 +266,33 @@ class Runner:
         self.start = None
         self._lock = threading.Lock()
         self._stop = threading.Event()
+        self.hb = float(scenario.get("period", HEARTBEAT_SEC))
         # live point state the heartbeat re-asserts
         self.value = {n: 0.0 for n in model.type}
         self.qual = {n: 0 for n in model.type}
         self.dropped = set()                    # points the heartbeat skips (comms loss)
+        self.scripted = set()                   # points a script pinned over physics
         for name, v in scenario.get("baseline", {}).items():
             self.value[name] = v
+
+        # Optional power-flow backing: when the scenario names a grid, the physics
+        # solution is the value source and scripted actions ride on top of it, so an
+        # operate causes a real cascade and an injection masks the true value.
+        self.grid = None
+        self.grid_meas = {}
+        self.grid_breaker_line = {}
+        self.grid_nominals = {}
+        grid_path = scenario.get("grid")
+        if grid_path:
+            if not os.path.isabs(grid_path):
+                grid_path = os.path.join(ROOT, grid_path)
+            with open(grid_path) as f:
+                gcfg = json.load(f)
+            self.grid = physics.Grid(gcfg)
+            self.grid_meas = {m["point"]: m for m in gcfg.get("measurements", [])}
+            self.grid_breaker_line = {b["point"]: b["line"] for b in gcfg.get("breakers", [])}
+            self.grid_nominals = gcfg.get("nominals", {})
+            self.grid.solve_dc()
 
     # ---- ground truth ----------------------------------------------------- #
 
@@ -289,18 +328,51 @@ class Runner:
         self.agent.write_q(name, self.value[name], self.model.is_float(name),
                            self.qual[name], int(time.time()))
 
+    def _refresh_physics(self):
+        """When the scenario has a grid, the physics solution is the value source.
+        Solve, let at most one overloaded line trip per tick (so a cascade ripples
+        across the screen), and refresh every grid-driven point that a scripted
+        action has not pinned. Points an attacker injected stay pinned, so a spoofed
+        value keeps lying while the real grid changes underneath it."""
+        if self.grid is None:
+            return
+        self.grid.solve_dc()
+        ev = self.grid.trip_worst()
+        if ev is not None:
+            self.grid.solve_dc()
+            self.record("cascade", note="line %s tripped (%.0f MW over %.0f)"
+                        % (ev["line"], ev["flow"], ev["limit"]), label="benign")
+        for point, spec in self.grid_meas.items():
+            if point in self.scripted or point in self.dropped:
+                continue
+            val, q = self.grid.measure(spec)
+            self.value[point] = val
+            self.qual[point] = QUALITY[q]
+        for bp, line in self.grid_breaker_line.items():
+            if bp in self.scripted or bp in self.dropped:
+                continue
+            ln = self.grid.line_by_id.get(line)
+            self.value[bp] = 1 if (ln and ln.in_service) else 0
+            self.qual[bp] = QUALITY["valid"]
+        for point, val in self.grid_nominals.items():
+            if point in self.scripted or point in self.dropped:
+                continue
+            self.value[point] = val
+            self.qual[point] = QUALITY["valid"]
+
     def heartbeat(self):
         """Keep every live point fresh so the HMI shows stations ONLINE. A point
         in self.dropped is skipped, which is exactly what makes it go stale."""
         while not self._stop.is_set():
             with self._lock:
+                self._refresh_physics()
                 for name in self.model.type:
                     if name not in self.dropped:
                         try:
                             self._assert(name)
                         except IOError:
                             return
-            self._stop.wait(HEARTBEAT_SEC)
+            self._stop.wait(self.hb)
 
     # ---- the actions ------------------------------------------------------ #
 
@@ -311,6 +383,7 @@ class Runner:
             self.value[name] = val
             self.qual[name] = q
             self.dropped.discard(name)
+            self.scripted.add(name)             # pin over physics until released
             self._assert(name)
         self.record("inject" if malicious else "set", name, val,
                     step.get("quality", "valid"), step.get("label"),
@@ -320,6 +393,7 @@ class Runner:
         name, val, secs = step["point"], step["value"], float(step["seconds"])
         prior = self.value.get(name, 0.0)
         with self._lock:
+            self.scripted.add(name)
             self.value[name] = val
             self.qual[name] = QUALITY[step.get("quality", "valid")]
             self._assert(name)
@@ -330,6 +404,7 @@ class Runner:
         with self._lock:
             self.value[name] = prior
             self.qual[name] = QUALITY["valid"]
+            self.scripted.discard(name)         # release back to physics/baseline
             self._assert(name)
         self.record("set", name, prior, "valid", "benign", note="pulse restore")
 
@@ -340,6 +415,8 @@ class Runner:
         period = float(step.get("step", 1.0))
         start_val = float(self.value.get(name, 0.0))
         steps = max(1, int(round(secs / period)))
+        with self._lock:
+            self.scripted.add(name)             # the ramp owns this point now
         self.record("ramp", name, start_val, step.get("quality", "valid"),
                     step.get("label"), step.get("technique"),
                     step.get("note") or ("ramp to %s over %ss" % (target, secs)))
@@ -361,6 +438,11 @@ class Runner:
             self.agent.select(name)
             self._sleep(0.3)
         self.agent.operate(name, cmd, step.get("tag", "scenario"))
+        # if the operated point is a breaker on the grid, switch the line so the
+        # co-simulation redistributes flow and may cascade
+        if self.grid is not None and name in self.grid_breaker_line:
+            with self._lock:
+                self.grid.set_breaker(name, bool(cmd))
         self.record("operate", name, cmd, "valid", step.get("label"),
                     step.get("technique"),
                     step.get("note") or ("operate %s = %d%s"
@@ -408,6 +490,7 @@ class Runner:
         qname = step["quality"]
         with self._lock:
             self.qual[name] = QUALITY[qname]
+            self.scripted.add(name)
             self._assert(name)
         self.record("quality", name, self.value.get(name), qname,
                     step.get("label"), step.get("technique"), step.get("note"))

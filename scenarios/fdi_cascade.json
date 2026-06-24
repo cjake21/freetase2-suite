@@ -1,0 +1,20 @@
+{
+  "name": "fdi_cascade",
+  "description": "A physics-backed attack. The grid in config/grid.json is live and solved each tick. An attacker first spoofs the tie-line flow to hide how heavily the tie is loaded, then issues an unauthorized open of the main tie breaker. The co-simulation responds the way a real grid does: flow redistributes, the parallel line overloads and trips, and the load island collapses. The spoofed point keeps reading normal the whole time, so the operator sees one calm value while the rest of the grid goes dark. The ground truth labels the injection and the unauthorized command, and the cascade trips are recorded as their physical consequences.",
+  "seed": 4242,
+  "period": 2.0,
+  "grid": "config/grid.json",
+
+  "timeline": [
+    { "at": 0,  "do": "annotate", "note": "grid live, normal operations" },
+
+    { "at": 6,  "do": "inject", "point": "plc1_mw", "value": 60.0,
+      "technique": "T0856", "note": "spoof a low tie-line flow to mask the real loading" },
+
+    { "at": 14, "do": "operate", "point": "plc1_brk", "command": 0, "sbo": true,
+      "technique": "T0855", "label": "malicious",
+      "note": "unauthorized open of the main tie; the grid cascades from here" },
+
+    { "at": 34, "do": "end", "note": "after the cascade" }
+  ]
+}

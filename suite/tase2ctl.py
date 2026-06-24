@@ -19,6 +19,9 @@ Operating modes:
   scenario     a deterministic, scripted timeline (suite/scenario.py) is the value
                source: reproducible operations, attacks, and faults, with a
                ground-truth label timeline written out for datasets and scoring
+  physics      a power-flow co-simulation (suite/physics.py) is the value source: a
+               real grid model drives the points, and a breaker command makes flows
+               redistribute and overloaded lines cascade
 
 Security profiles:
   insecure     plaintext, open command path (ranges and attack demos)
@@ -45,6 +48,7 @@ LAUNCHERS = {
     "simulation": "scripts/50_run_hmi.sh",
     "ingestion": "scripts/55_run_scada.sh",
     "scenario": "scripts/56_run_scenario.sh",
+    "physics": "scripts/57_run_physics.sh",
 }
 
 
@@ -75,6 +79,9 @@ def build_launch(name):
     # scenario mode: the deployment names a scenario file the engine plays.
     if d.get("scenario"):
         env["SCENARIO"] = os.path.join(ROOT, d["scenario"])
+    # physics mode: the deployment names a grid model the co-simulation solves.
+    if d.get("grid"):
+        env["GRID"] = os.path.join(ROOT, d["grid"])
 
     # bench field-device simulators for the demo (no hardware): a deployment lists
     # which to start under "sims" (e.g. ["modbus","dnp3"]).

@@ -7,6 +7,7 @@ workflows
 operations
 hmi-demo
 scenarios
+physics
 datasets
 scoring
 physical-testbed

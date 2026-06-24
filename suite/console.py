@@ -156,6 +156,9 @@ def precheck(name):
     if d.get("scenario"):
         scn = os.path.join(R, d["scenario"])
         add("scenario present", os.path.isfile(scn), d["scenario"])
+    if d.get("grid"):
+        grd = os.path.join(R, d["grid"])
+        add("grid model present", os.path.isfile(grd), d["grid"])
     argv = ["python3", os.path.join(R, "scripts", "validate_config.py"), cfg]
     if tags:
         argv.append(tags)

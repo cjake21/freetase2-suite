@@ -57,6 +57,16 @@ library only and needs no capture or parsing packages. The orchestrator
 `scripts/58_run_dataset.sh` captures a run and labels it in one step. See
 {doc}`../guides/datasets`.
 
+## Power-flow co-simulation (`suite/physics.py`)
+
+The value source in physics mode. It solves a DC power flow over a grid model
+(`config/grid.json`) each tick, maps line flows and bus quantities onto the points,
+and reads breaker controls so an operator or attacker command redistributes flow
+and overloaded lines cascade (one trip per tick, so it ripples on the HMI). The
+solver is plain Python with no numerical libraries, so the suite stays standard
+library only. The launcher is `scripts/57_run_physics.sh`. See
+{doc}`../guides/physics`.
+
 ## Detection scorer (`suite/score.py`)
 
 Grades a sensor against a scenario's ground truth. It reads alerts (Suricata

@@ -25,6 +25,9 @@ One tool, selected by mode:
   attacks, and faults, the same way every run, and writes a ground-truth label
   timeline alongside it. For repeatable training, IDS regression, and building
   labelled datasets. See `docs/guides/scenarios`.
+- **Physics mode** puts a real grid model behind the points: a DC power-flow
+  co-simulation drives them, and opening a breaker redistributes flow so overloaded
+  lines cascade, exactly like the real thing. See `docs/guides/physics`.
 
 From a scenario run you can build a **labelled dataset**: `scripts/58_run_dataset.sh`
 captures the traffic and joins it with the ground truth so every window of time is

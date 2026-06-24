@@ -10,8 +10,9 @@ base-level versions.
 - **One tool, all capabilities.** The TASE.2 server, ICCP agent, ingestion gateway
   (Modbus and DNP3), SCADA HMI, DNP3 outstation simulator, config validator, and the
   test, fuzz, and interoperability suites are all here and working.
-- **Explicit operating modes.** Simulation and ingestion, each under an insecure or
-  hardened security profile, expressed as named deployments in
+- **Explicit operating modes.** Simulation, ingestion, scenario (a scripted,
+  reproducible timeline), and physics (a power-flow co-simulation), each under an
+  insecure or hardened security profile, expressed as named deployments in
   `suite/profiles.json`.
 - **Control plane.** `suite/tase2ctl.py` (CLI) and `suite/console.py` (web GUI)
   start, stop, and report deployments and link to the running SCADA HMI. This is the

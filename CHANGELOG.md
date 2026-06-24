@@ -6,6 +6,14 @@ Keep a Changelog, and the project aims to follow semantic versioning.
 ## [Unreleased]
 
 ### Added
+- Physics mode: a DC power-flow co-simulation (`suite/physics.py`, `config/grid.json`,
+  the `physics-demo` deployment, launcher `scripts/57_run_physics.sh`) is the value
+  source. It solves a grid model each tick, maps line flows and bus quantities onto
+  the points, and reads breaker controls so an operator or attacker breaker command
+  redistributes flow and overloaded lines cascade one at a time. The solver is plain
+  Python (no numerical libraries), so the suite stays standard library only. Voltage
+  magnitude is a documented approximation. Tests in `tests/test_physics.py`. See
+  `docs/guides/physics`.
 - Detection scoring: `suite/score.py` grades a sensor against a scenario's ground
   truth. It reads Suricata eve.json or a generic JSON-lines alert feed, matches
   alerts to the malicious intervals, and reports recall per MITRE ATT&CK for ICS

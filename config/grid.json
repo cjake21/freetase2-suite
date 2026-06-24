@@ -1,0 +1,52 @@
+{
+  "_comment": "Power-flow model behind the ICCP points (co-simulation, suite/physics.py). A four-bus meshed grid: a ring B1-B2-B3-B4-B1 plus a main tie L5 (B1-B3). Generation is the slack at B1; load sits at B2, B3, and B4. Breakers map a control point to a line, so an operator or attacker breaker command switches it; measurements map physical quantities (line flow, bus voltage, transformer thermal) onto the published points by name, the same join key as the tag database. Limits are tuned so the grid is stable at baseline, but opening the main tie (plc1_brk / L5) forces the ring path over its limit and the failure cascades line by line. Voltage magnitude is a documented approximation; DC power flow models real power and angles.",
+
+  "base_mva": 100,
+  "overload_factor": 1.0,
+
+  "buses": [
+    { "id": "B1", "slack": true },
+    { "id": "B2" },
+    { "id": "B3" },
+    { "id": "B4" }
+  ],
+
+  "generators": [
+    { "bus": "B1", "mw": 0 }
+  ],
+  "loads": [
+    { "bus": "B2", "mw": 30 },
+    { "bus": "B3", "mw": 150 },
+    { "bus": "B4", "mw": 30 }
+  ],
+
+  "lines": [
+    { "id": "L1", "from": "B1", "to": "B2", "x": 0.1, "limit_mw": 100 },
+    { "id": "L2", "from": "B2", "to": "B3", "x": 0.1, "limit_mw": 120 },
+    { "id": "L3", "from": "B3", "to": "B4", "x": 0.1, "limit_mw": 120 },
+    { "id": "L4", "from": "B4", "to": "B1", "x": 0.1, "limit_mw": 130 },
+    { "id": "L5", "from": "B1", "to": "B3", "x": 0.1, "limit_mw": 150 }
+  ],
+
+  "breakers": [
+    { "point": "plc1_brk", "line": "L5" },
+    { "point": "plc2_brk", "line": "L1" },
+    { "point": "rtu1_brk", "line": "L2" }
+  ],
+
+  "measurements": [
+    { "point": "plc1_mw", "type": "line_flow", "line": "L5" },
+    { "point": "plc1_kv", "type": "bus_vmag", "bus": "B3", "nominal_kv": 138 },
+    { "point": "plc2_mw", "type": "line_flow", "line": "L1" },
+    { "point": "plc2_kv", "type": "bus_vmag", "bus": "B2", "nominal_kv": 138 },
+    { "point": "plc3_mw", "type": "line_flow", "line": "L3" },
+    { "point": "plc3_temp", "type": "thermal", "line": "L3", "ambient_c": 50, "gain_c": 45 },
+    { "point": "plc3_stat", "type": "thermal_state", "line": "L3", "threshold_pct": 50 },
+    { "point": "rtu1_mw", "type": "line_flow", "line": "L2" },
+    { "point": "rtu1_kv", "type": "bus_vmag", "bus": "B3", "nominal_kv": 138 }
+  ],
+
+  "nominals": {
+    "plc1_avr": 1.0
+  }
+}

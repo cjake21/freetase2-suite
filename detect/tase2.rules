@@ -30,3 +30,12 @@ alert tcp any any -> any 10502 (msg:"FREETASE2 TASE.2 indication point Value wri
 
 # T0856 Spoof Reporting Message: a write that forces a not-valid quality flag.
 alert tcp any any -> any 10502 (msg:"FREETASE2 TASE.2 quality flag write (possible manipulation)"; flow:to_server,established; content:"Flags"; metadata:mitre_technique_id T0856; classtype:bad-unknown; sid:4200004; rev:1;)
+
+# T0888 Remote System Information Discovery: a peer reading the bilateral table id.
+# Operational peers negotiate this once at association; a read of it, especially a
+# repeated one, is enumeration. Tune the source nets to your trusted peers.
+alert tcp any any -> any 10502 (msg:"FREETASE2 TASE.2 read of Bilateral_Table_ID (discovery)"; flow:to_server,established; content:"Bilateral_Table_ID"; metadata:mitre_technique_id T0888; classtype:attempted-recon; sid:4200005; rev:1;)
+
+# T0814 Denial of Service: a high rate of control writes to one object (the toggling
+# or re-open loop). Legitimate control is human-paced, so a burst is anomalous.
+alert tcp any any -> any 10502 (msg:"FREETASE2 TASE.2 control command flood (rapid operates)"; flow:to_server,established; content:"_ctl"; content:"Command"; distance:0; within:64; detection_filter:track by_src, count 5, seconds 2; metadata:mitre_technique_id T0814; classtype:attempted-dos; sid:4200006; rev:1;)

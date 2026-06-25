@@ -47,9 +47,10 @@ plane needs to change to wrap it.
    HMI, add a mode and profile editor that writes `suite/profiles.json`, show live
    logs, and add device and point editors that write `config/scada.json` and the tag
    database.
-2. **Single launch.** A `tase2-suite` entry point (or a desktop or Electron wrapper)
-   that starts the console and opens a browser, so the whole tool is one command or
-   one click.
+2. **Single launch.** Done: `tase2-suite` (and `suite/launcher.py`) is the entry
+   point. It checks the native build, starts the console, and opens a browser, so the
+   whole tool is one command. `pyproject.toml` exposes it as a console script and the
+   `Makefile` wraps the common tasks. A desktop or Electron wrapper could come later.
 3. **Mode safety interlocks.** A confirmation step and a clear banner when starting
    an ingestion deployment that can reach real devices, and a guard that refuses to
    start simulation against a real-device tag database.
@@ -65,8 +66,11 @@ plane needs to change to wrap it.
    `scripts/59_score.sh`): it grades a sensor's alerts against the ground truth, per
    technique. Remaining: surface scenarios as runnable items in the console, add
    capture and replay, and grow the scenario library and rule packs.
-6. **Packaging.** Versioned releases, a published container, and hosted
-   documentation.
+6. **Packaging.** In progress: `pyproject.toml` (metadata, version, the
+   `tase2-suite` console script), a `Makefile` front door, and a container image
+   whose default command is the console (`docker run -p 8080:8080 -p 8800:8800`), so
+   the image is the application. Remaining: versioned tagged releases, a published
+   container, and hosted documentation.
 
 ## Notes
 

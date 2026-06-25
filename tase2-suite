@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# FreeTASE2 Suite: one command to launch the whole tool (control console + browser).
+# Runs straight from a clone, no install needed. See ./tase2-suite --help.
+exec python3 "$(dirname "$0")/suite/launcher.py" "$@"

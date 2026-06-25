@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "freetase2-suite"
+version = "0.1.0"
+description = "A consolidated TASE.2 / ICCP (IEC 60870-6) tool for power and OT security testbeds: simulation, ingestion, scripted attack scenarios, a power-flow co-simulation, enforced bilateral tables, multi-control-center federation, and a dataset and detection-scoring pipeline."
+readme = "README.md"
+requires-python = ">=3.7"
+license = { text = "GPL-3.0-or-later" }
+keywords = ["TASE.2", "ICCP", "IEC 60870-6", "SCADA", "OT security", "ICS", "MMS", "power grid"]
+
+# The Python side is standard library only, on purpose: it keeps the tool easy to
+# run and to trust, and keeps the proprietary content cleanly separable. The native
+# server is built by scripts/10_build.sh on top of libIEC61850.
+dependencies = []
+
+[project.scripts]
+tase2-suite = "suite.launcher:main"
+
+[project.urls]
+Documentation = "https://example.com/freetase2-suite/docs"
+
+# This repository is a working tree (native binaries, scripts, and configs alongside
+# the Python). Install it in editable mode for the entry point to find them:
+#   pip install -e .
+# then run `tase2-suite`. Or just run `./tase2-suite` from the clone, or use Docker.
+[tool.setuptools]
+packages = ["suite"]

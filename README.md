@@ -49,12 +49,27 @@ federation works. See `docs/guides/federation`.
 ## Quick start
 
 ```bash
-./scripts/10_build.sh          # build libIEC61850 (pinned) and the tools, once
-python3 suite/console.py       # open http://127.0.0.1:8080
+./tase2-suite --build          # build the native tools (once), then open the console
 ```
 
-In the control console, pick a deployment and press Start, then open its SCADA HMI.
-No hardware is required for the demos.
+That is the whole tool in one command: it builds the native tools the first time,
+starts the control console, and opens it in your browser. Pick a deployment, press
+Start, then open its SCADA HMI. No hardware is required for the demos.
+
+Already built, or prefer the pieces:
+
+```bash
+./tase2-suite                  # launch the console and a browser
+make build && make run         # the same, via make (run `make` to list targets)
+python3 suite/console.py       # the console alone, no browser
+```
+
+Or run the whole thing in a container:
+
+```bash
+docker build -t freetase2-suite .
+docker run --rm -p 8080:8080 -p 8800:8800 freetase2-suite   # console on :8080
+```
 
 Prefer the command line:
 

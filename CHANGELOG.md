@@ -6,6 +6,13 @@ Keep a Changelog, and the project aims to follow semantic versioning.
 ## [Unreleased]
 
 ### Added
+- Single launch and packaging: `tase2-suite` (and `suite/launcher.py`) is one
+  command that checks the native build, starts the control console, and opens it in a
+  browser. `pyproject.toml` adds project metadata and the `tase2-suite` console
+  script, a root `Makefile` wraps the common tasks (build, run, test, docs, docker),
+  and the container image now runs the console by default, so `docker run -p 8080:8080
+  -p 8800:8800 freetase2-suite` is the whole tool in a box. Tests in
+  `tests/test_launcher.py`.
 - Attack library and dual-association traffic: built-in, multi-stage grid attacks
   grounded in real incidents and MITRE ATT&CK for ICS, written to resemble real
   intrusion traffic for detection building. The scenario engine gained a second

@@ -73,9 +73,13 @@ function setV(id,txt,st){ const e=$(id); if(e){ e.textContent=txt; e.className="
 // ---- communication / mimic bus --------------------------------------------
 function renderMimic(stations){
   const gwOn=!!(state.online&&state.online.B);
-  const srv=state.server||{};
-  let h=`<div class="bus-gw"><span class="lamp ${gwOn?"run":"crit"}"></span>
-    <div><div class="gw-t">ICCP GATEWAY</div><div class="gw-s">${esc(srv.domain||"")} &middot; ${esc(srv.host||"")}:${esc(srv.port||"")}</div></div></div>
+  // gateway state is derived from the topology: partial means at least one station
+  // is unreachable, so the lamp and station count stay consistent with the header.
+  const onCount=stations.filter(s=>s.online).length, n=stations.length;
+  const gwCls=!gwOn?"crit":(onCount===n?"run":(onCount?"warn":"crit"));
+  const gwState=!gwOn?"gateway offline":(onCount===n?"gateway online":(onCount?"comms partial":"no stations"));
+  let h=`<div class="bus-gw"><span class="lamp ${gwCls}"></span>
+    <div><div class="gw-t">ICCP GATEWAY</div><div class="gw-s">${esc(gwState)} &middot; ${onCount}/${n} stations</div></div></div>
     <div class="bus-lead"></div>
     <div class="bus-track"><div class="trunk"></div>`;
   h+=stations.map(st=>{
@@ -96,11 +100,15 @@ function renderMimic(stations){
 function renderAlarmRail(alarms){
   const host=$("alarmrail");
   if(!alarms.length){ host.innerHTML='<div class="arail-none">No active alarms</div>'; return; }
-  host.innerHTML=alarms.slice().sort((a,b)=>(a.sev==="crit"?0:1)-(b.sev==="crit"?0:1)).slice(0,4).map(a=>
+  const sorted=alarms.slice().sort((a,b)=>(a.sev==="crit"?0:1)-(b.sev==="crit"?0:1));
+  let h=sorted.slice(0,3).map(a=>
     `<div class="arail ${a.sev}"><div class="ab"></div>
       <div class="asev">${a.sev.toUpperCase()}</div>
       <div class="acond">${esc(a.cond)}</div>
       <div class="aval">${esc(a.val||"")}</div></div>`).join("");
+  const extra=sorted.length-3;
+  if(extra>0){ const moreCrit=sorted.slice(3).some(a=>a.sev==="crit"); h+=`<div class="arail-more">+ ${extra} more ${moreCrit?"alarms":"warnings"}</div>`; }
+  host.innerHTML=h;
 }
 
 // ---- grouped point table --------------------------------------------------

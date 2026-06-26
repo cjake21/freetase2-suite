@@ -47,7 +47,8 @@ git checkout feature/lab-device-capture     # branch with the LAN capture script
 The binaries are statically linked, so libIEC61850 does **not** need to be installed
 at runtime.
 
-Confirm the build works before involving the device (loopback, no sudo, ~20s):
+Confirm the build works before involving the device (loopback, needs sudo to bind
+port 102, ~20s):
 
 ```bash
 ./scripts/40_local_test.sh

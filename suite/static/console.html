@@ -101,6 +101,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);font-size
 .opbtn.ghost{background:transparent;color:var(--muted);}
 .opbtn.start{color:#dff1e4;background:#2f6e44;border-color:#3c855440;}
 .opbtn.stop{color:#f6ddd7;background:#9a3a2c;border-color:#b04a3a40;}
+.envsel{font-family:var(--font-ui);font-size:11.5px;min-width:78px;padding:5px 7px;color:var(--text);
+  background:var(--panel-3);border:1px solid var(--line);border-radius:2px;cursor:pointer;}
+.envsel:hover{border-color:var(--muted);}
+.envsel:disabled{opacity:.4;cursor:not-allowed;}
 
 /* ===== process/data tools panel ===== */
 .tool{background:var(--panel);border:1px solid var(--line-soft);border-left:3px solid var(--line);
@@ -210,6 +214,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);font-size
 <script>
 "use strict";
 let deps={}, order=[], status={running:false}, runs={}, prechecks={}, sel=null, logFilter="ALL";
+let envChoices=[], envDeps={}, envPick={};   // environment picker: choices, per-deployment support, current pick
 const $=id=>document.getElementById(id);
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 async function api(p,b){const o=b?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}:{};return (await fetch(p,o)).json();}
@@ -255,6 +260,16 @@ const CATS=[
   {id:"defense", label:"Defense & Federation", desc:"Encryption, command allowlist, and per-peer bilateral scoping."},
   {id:"hardware",label:"Physical Testbed",     desc:"Real PLCs and RTUs."}
 ];
+function envSelHtml(name){
+  // Scenario attacks reference points by role, so they run on either environment.
+  // Offer the choice right at the Start button; other deployments show nothing.
+  const opts=envDeps[name]||[];
+  if(opts.length<2)return "";
+  const cur=envPick[name]||opts[0];
+  const o=envChoices.filter(c=>opts.includes(c.name))
+    .map(c=>`<option value="${esc(c.name)}" ${c.name===cur?"selected":""}>${esc(c.label)}</option>`).join("");
+  return `<select class="envsel" data-env-for="${esc(name)}" title="environment" ${status.running?"disabled":""}>${o}</select>`;
+}
 function slotHtml(name,i){
   const d=deps[name], s=slotState(name), no=String(i).padStart(2,"0");
   const ports=portsFor(d).map(p=>p.split("/")[1]).join("/");
@@ -268,7 +283,7 @@ function slotHtml(name,i){
     </div>
     <div class="slot-ctrls">
       ${s==="run"?`<button class="opbtn stop" data-stop="1">Stop</button>`
-                 :`<button class="opbtn start" data-start="${esc(name)}" ${status.running?"disabled":""}>Start</button>`}
+                 :`${envSelHtml(name)}<button class="opbtn start" data-start="${esc(name)}" ${status.running?"disabled":""}>Start</button>`}
       <button class="opbtn ghost" data-logs="${esc(name)}">Logs</button>
     </div>
   </div>`;
@@ -292,7 +307,11 @@ function renderRack(){
   html+=toolsHtml();
   $("rack").innerHTML=html;
   $("rack").querySelectorAll(".slot").forEach(el=>el.onclick=e=>{if(e.target.closest("button"))return;sel=el.dataset.name;renderRack();renderBay();});
-  $("rack").querySelectorAll("button[data-start]").forEach(b=>b.onclick=async()=>{b.disabled=true;status=await api("/api/start",{name:b.dataset.start});sel=b.dataset.start;await loadPrecheck(b.dataset.start);await refresh();});
+  $("rack").querySelectorAll("select[data-env-for]").forEach(s=>{
+    s.onclick=e=>e.stopPropagation();
+    s.onchange=()=>{envPick[s.dataset.envFor]=s.value;};
+  });
+  $("rack").querySelectorAll("button[data-start]").forEach(b=>b.onclick=async()=>{b.disabled=true;const n=b.dataset.start;const sl=b.closest(".slot").querySelector("select[data-env-for]");const e=sl?sl.value:null;if(e)envPick[n]=e;status=await api("/api/start",{name:n,environment:e});sel=n;await loadPrecheck(n);await refresh();});
   $("rack").querySelectorAll("button[data-stop]").forEach(b=>b.onclick=async()=>{b.disabled=true;status=await api("/api/stop",{});await refresh();});
   $("rack").querySelectorAll("button[data-logs]").forEach(b=>b.onclick=()=>{sel=b.dataset.logs;renderRack();renderBay();$("log").scrollIntoView({behavior:"smooth"});});
 }
@@ -300,14 +319,18 @@ function renderBay(){
   const d=deps[sel];
   if(!d){$("cbay").innerHTML='<div class="cbay-empty">Select a deployment to open its control bay.</div>';$("cbay").dataset.key="";return;}
   const on=status.running&&status.name===sel, pc=prechecks[sel];
-  const key=sel+"|"+(on?1:0)+"|"+(pc?pc.ok:"?")+"|"+((status.name===sel&&status.last_run)||runs[sel]||"");
+  const envOpts=envDeps[sel]||[];
+  const curEnv=on?(status.environment||""):(envOpts.length?(envPick[sel]||envOpts[0]):"");
+  const key=sel+"|"+(on?1:0)+"|"+(pc?pc.ok:"?")+"|"+((status.name===sel&&status.last_run)||runs[sel]||"")+"|"+curEnv;
   if($("cbay").dataset.key===key)return; $("cbay").dataset.key=key;
+  const envFlag=(envOpts.length>1&&curEnv)?(" --env "+curEnv):"";
   let h=`<div class="cbay-hd"><div class="nm">${esc(sel)}</div><div class="ds">${esc(d.description||"")}</div></div>`;
   h+=sect("Command");
-  h+=`<div class="cmdstrip"><span class="ct">Run</span><span class="cc command">python3 suite/tase2ctl.py run ${esc(sel)}</span></div>`;
+  h+=`<div class="cmdstrip"><span class="ct">Run</span><span class="cc command">python3 suite/tase2ctl.py run ${esc(sel)}${esc(envFlag)}</span></div>`;
   h+=sect("Config");
   h+=`<div class="kvs">
     <div class="kv"><span class="k">Script</span><span class="v path">${esc(scriptFor(d))}</span></div>
+    ${envOpts.length>1?`<div class="kv"><span class="k">Environment</span><span class="v">${esc((envChoices.find(c=>c.name===curEnv)||{}).label||curEnv)}</span></div>`:""}
     <div class="kv"><span class="k">Config</span><span class="v path">${esc(d.config||"")}</span></div>
     ${d.tags?`<div class="kv"><span class="k">Tags</span><span class="v path">${esc(d.tags)}</span></div>`:""}
     <div class="kv"><span class="k">Profile</span><span class="v" style="color:${d.security==="hardened"?"var(--green)":"var(--amber)"}">${esc((d.security||"").toUpperCase())}</span></div>
@@ -351,6 +374,7 @@ async function loadAllPrechecks(){await Promise.all(order.map(loadPrecheck));}
 async function refresh(){status=await api("/api/status");runs=await api("/api/runs");renderHeader();renderRack();renderBay();refreshLog();}
 async function init(){
   deps=await api("/api/deployments"); order=Object.keys(deps).filter(k=>k!=="_comment");
+  const ev=await api("/api/environments"); envChoices=ev.choices||[]; envDeps=ev.deployments||{};
   $("estop").onclick=async()=>{if(confirm("STOP ALL: de-energize the running deployment?")){status=await api("/api/stop",{});await refresh();}};
   $("logfilters").querySelectorAll(".lf").forEach(b=>b.onclick=()=>{logFilter=b.dataset.f;$("logfilters").querySelectorAll(".lf").forEach(x=>x.classList.toggle("on",x===b));refreshLog();});
   await loadAllPrechecks();

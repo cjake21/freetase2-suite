@@ -50,7 +50,11 @@ LINES = [
     ("L_RIV_CEN",   "RIVER345",   "CENTRAL345", 0.04, 400),
     ("L_MESA_CEN",  "MESA345",    "CENTRAL345", 0.05, 350),
     ("L_CEN_EAST",  "CENTRAL345", "EAST345",    0.05, 400),
-    ("L_RIV_EAST",  "RIVER345",   "EAST345",    0.08, 300),
+    # L_RIV_EAST is the engineered N-1 vulnerability: it is the only other 345 kV
+    # feed to East, so opening the Central-East tie forces East's load onto it and
+    # it overloads and trips, islanding East / Pine / Steel / South-tie (a cascade
+    # the attack scenarios trigger on the realistic environment).
+    ("L_RIV_EAST",  "RIVER345",   "EAST345",    0.08, 130),
     ("L_CEN_NTIE",  "CENTRAL345", "NTIE345",    0.06, 250),
     ("L_EAST_STIE", "EAST345",    "STIE345",    0.06, 250),
     ("T_CEN_OAK",   "CENTRAL345", "OAKDALE138", 0.12, 200),

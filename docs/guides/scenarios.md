@@ -97,6 +97,32 @@ duration before the next step begins, so space your `at` times to account for th
 Meanwhile the heartbeat keeps every other point fresh in the background, so the rest
 of the grid stays online while one point is ramping.
 
+## Roles and environments
+
+A step may name its point directly (`"point": "plc1_mw"`), or it may name it by
+role (`"role": "tie_flow"`). A role is resolved at run time against the chosen
+environment, so one scenario runs on more than one grid without being rewritten. The
+shipped attacks all use roles, which is what lets each one play on the small lab and
+on the regional grid alike. The role forms are `role` (a single point), `roles` (a
+list), `target_role` (a scan or flood target), and `station_role` (a station for
+`comms_loss`); the literal `point`, `points`, `target`, and `station` forms still
+work and are left untouched.
+
+An environment lives in `config/environments.json`. It gives a `config` (the point
+model), a `grid` (the power-flow model), a `roles` map (role to point), and a
+`stations` map (station role to station), and the engine applies it before it plays
+the timeline. Two are defined: `simple` (the four-bus lab) and `realistic` (the
+regional `grid-demo` grid). Pick one with `--env` or, in the console, with the
+environment dropdown on an Attack Scenario:
+
+```bash
+python3 suite/scenario.py validate scenarios/ukraine2015_blackout.json --env realistic
+python3 suite/tase2ctl.py run ukraine2015-attack --env realistic
+```
+
+To add an environment, give every role and station an entry under a new key. To make
+a scenario portable, reference its points by role rather than by name.
+
 ## Backing a scenario with physics
 
 A scenario can name a grid model, and then the power-flow co-simulation becomes the

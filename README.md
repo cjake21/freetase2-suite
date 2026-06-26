@@ -67,7 +67,10 @@ The shipped deployments (the console groups them by purpose):
 
 - **Demos and training**: `sim-demo`, `testbed-demo`, `grid-demo`
 - **Attack scenarios**: `scenario-demo`, `cascade-demo`, `ukraine2015-attack`,
-  `industroyer-attack`, `stealthy-attack`, `recon-attack`
+  `industroyer-attack`, `stealthy-attack`, `recon-attack`. Each runs on either
+  environment, the four-bus `simple` lab or the regional `realistic` grid
+  (`grid-demo`): pick it with the dropdown on the console slot, or `run <attack>
+  --env realistic`.
 - **Defense and federation**: `field-hardened`, `field-federated`, `federation-demo`
 - **Physical testbed**: `physical`
 

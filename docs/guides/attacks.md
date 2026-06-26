@@ -28,6 +28,35 @@ The four headline attacks are also deployments in the control console under Atta
 Scenarios: `ukraine2015-attack`, `industroyer-attack`, `stealthy-attack`, and
 `recon-attack`.
 
+## Two environments: simple or realistic
+
+Every attack runs on either of two environments, and you pick which when you launch
+it. An attack does not name fixed points; it names them by role (the tie breaker,
+the tie flow, a bus voltage, a feeder breaker, the communications station). An
+environment maps each role to a real point and supplies the grid behind it, so the
+same attack plays out on either grid without being rewritten:
+
+- **simple** is the original four-bus teaching grid: one tie, two feeders, a
+  transformer. Small and legible, best for seeing an attack's mechanics on one
+  screen.
+- **realistic** is the regional grid behind `grid-demo`: two generation plants, a
+  345 kV backbone, four 138 kV load substations, two external ties, and around 110
+  points with the full telemetry taxonomy. Opening the Central-East tie triggers a
+  real multi-substation cascade. Best for showing an attack the way an operator
+  would actually see it.
+
+In the control console each Attack Scenario slot has an environment dropdown next to
+its Start button. From the command line, pass `--env`:
+
+```bash
+python3 suite/tase2ctl.py run ukraine2015-attack --env realistic
+```
+
+The environment is defined in `config/environments.json`; to add one, give every
+role an entry there. Both environments are tuned so the grid is stable at rest and
+the scripted tie opening tips it into a cascade, so the headline blackout lands on
+either grid.
+
 ## How to read TASE.2 traffic
 
 TASE.2 / ICCP is MMS (ISO 9506) carried over TPKT, COTP, the OSI session and

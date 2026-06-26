@@ -655,14 +655,68 @@ class Runner:
 # CLI
 # --------------------------------------------------------------------------- #
 
+ENV_FILE = os.path.join(ROOT, "config", "environments.json")
+
+
 def load_scenario(path):
     with open(path) as f:
         return json.load(f)
 
 
+def load_environment(name):
+    with open(ENV_FILE) as f:
+        envs = json.load(f).get("environments", {})
+    if name not in envs:
+        sys.exit("[scenario] unknown environment %r (have: %s)" % (name, ", ".join(envs)))
+    return envs[name]
+
+
+def apply_environment(scenario, env):
+    """Resolve a scenario's role references to this environment's points and set its
+    grid. Steps may name a 'role'/'roles'/'target_role' (resolved here against the
+    environment's role map) or a literal 'point'/'points'/'target' (left untouched),
+    so one scenario runs on the simple lab and on the realistic grid alike."""
+    roles = env.get("roles", {})
+    stations = env.get("stations", {})
+
+    def resolve(r):
+        if r not in roles:
+            sys.exit("[scenario] role %r has no mapping in this environment" % r)
+        return roles[r]
+
+    def resolve_station(r):
+        if r not in stations:
+            sys.exit("[scenario] station role %r has no mapping in this environment" % r)
+        return stations[r]
+
+    for step in scenario.get("timeline", []):
+        if "role" in step:
+            step["point"] = resolve(step.pop("role"))
+        if "roles" in step:
+            step["points"] = [resolve(r) for r in step.pop("roles")]
+        if "target_role" in step:
+            step["target"] = resolve(step.pop("target_role"))
+        if "station_role" in step:
+            step["station"] = resolve_station(step.pop("station_role"))
+    if env.get("grid"):
+        scenario["grid"] = env["grid"]
+    return scenario
+
+
+def _filter_baseline(scenario, model):
+    """Keep only baseline points that exist in this environment's model. A baseline
+    written for one point model then degrades gracefully on another (on a grid-backed
+    environment the solver drives the values anyway)."""
+    bl = scenario.get("baseline")
+    if isinstance(bl, dict):
+        scenario["baseline"] = {k: v for k, v in bl.items() if model.exists(k)}
+
+
 def cmd_validate(args):
-    model = PointModel(args.config)
-    scenario = load_scenario(args.scenario)
+    env = load_environment(args.env)
+    model = PointModel(env.get("config", args.config))
+    scenario = apply_environment(load_scenario(args.scenario), env)
+    _filter_baseline(scenario, model)
     errors = validate(scenario, model)
     for e in errors:
         print("[ERROR] " + e)
@@ -674,8 +728,10 @@ def cmd_validate(args):
 
 
 def cmd_run(args):
-    model = PointModel(args.config)
-    scenario = load_scenario(args.scenario)
+    env = load_environment(args.env)
+    model = PointModel(env.get("config", args.config))
+    scenario = apply_environment(load_scenario(args.scenario), env)
+    _filter_baseline(scenario, model)
     errors = validate(scenario, model)
     if errors:
         for e in errors:
@@ -710,11 +766,15 @@ def main():
 
     v = sub.add_parser("validate", help="check a scenario against the point model")
     v.add_argument("scenario")
+    v.add_argument("--env", default=os.environ.get("ENVIRONMENT", "simple"),
+                   help="environment to resolve roles against (simple | realistic)")
     v.add_argument("--config", default=os.environ.get("SCADA_CONFIG", DEFAULT_CONFIG))
     v.set_defaults(func=cmd_validate)
 
     r = sub.add_parser("run", help="play a scenario against a running server")
     r.add_argument("scenario")
+    r.add_argument("--env", default=os.environ.get("ENVIRONMENT", "simple"),
+                   help="environment to resolve roles against (simple | realistic)")
     r.add_argument("--config", default=os.environ.get("SCADA_CONFIG", DEFAULT_CONFIG))
     r.add_argument("--server-host", default=os.environ.get("TASE2_HOST", "127.0.0.1"))
     r.add_argument("--server-port", type=int,

@@ -43,6 +43,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
 PROFILES = os.path.join(HERE, "profiles.json")
+ENVIRONMENTS = os.path.join(ROOT, "config", "environments.json")
 
 # operating mode -> the run script that implements it. Ingestion uses one unified
 # launcher for any protocol mix; bench simulators are enabled via env from the
@@ -68,8 +69,31 @@ def get_deployment(name):
     return deps[name]
 
 
-def build_launch(name):
-    """Return (argv, env) to launch a deployment. Used by the CLI and the console."""
+def load_environments():
+    """The environment definitions (role->point maps, config, and grid per
+    environment) shared with the scenario engine. Returns {} if none are defined."""
+    try:
+        with open(ENVIRONMENTS) as f:
+            return json.load(f).get("environments", {})
+    except FileNotFoundError:
+        return {}
+
+
+def deployment_environments(d):
+    """The environments a deployment may run on. Scenario deployments reference their
+    points by role, so they run on either the simple lab or the realistic grid; every
+    other mode is fixed to its own config and reports no choice."""
+    if d.get("mode") == "scenario":
+        return list(load_environments().keys())
+    return []
+
+
+def build_launch(name, environment=None):
+    """Return (argv, env) to launch a deployment. Used by the CLI and the console.
+
+    A scenario deployment may run on a named environment (simple or realistic): the
+    environment supplies the point model and the grid, and its name flows through to
+    the scenario engine so role references resolve to that environment's points."""
     d = get_deployment(name)
     mode = d.get("mode", "ingestion")
     env = dict(os.environ)
@@ -80,9 +104,23 @@ def build_launch(name):
     if d.get("tags"):
         env["TAGS"] = os.path.join(ROOT, d["tags"])
 
-    # scenario mode: the deployment names a scenario file the engine plays.
+    # scenario mode: the deployment names a scenario file the engine plays. The
+    # scenario references its points by role, so an environment (simple or realistic)
+    # supplies the point model and the grid the roles resolve against. The chosen
+    # environment overrides the config and grid here and its name flows to the engine.
     if d.get("scenario"):
         env["SCENARIO"] = os.path.join(ROOT, d["scenario"])
+        if mode == "scenario":
+            envs = load_environments()
+            env_name = environment or "simple"
+            if env_name not in envs:
+                sys.exit("deployment %r: unknown environment %r (have: %s)"
+                         % (name, env_name, ", ".join(envs) or "none"))
+            envdef = envs[env_name]
+            env["ENVIRONMENT"] = env_name
+            env["SCADA_CONFIG"] = os.path.join(ROOT, envdef["config"])
+            if envdef.get("grid"):
+                env["GRID"] = os.path.join(ROOT, envdef["grid"])
     # physics mode: the deployment names a grid model the co-simulation solves.
     if d.get("grid"):
         env["GRID"] = os.path.join(ROOT, d["grid"])
@@ -126,8 +164,9 @@ def cmd_validate(args):
 
 
 def cmd_run(args):
-    argv, env = build_launch(args.name)
-    print("[tase2ctl] running deployment %r" % args.name)
+    argv, env = build_launch(args.name, getattr(args, "env", None))
+    where = " on %s" % args.env if getattr(args, "env", None) else ""
+    print("[tase2ctl] running deployment %r%s" % (args.name, where))
     sys.exit(subprocess.call(argv, env=env))
 
 
@@ -138,7 +177,10 @@ def main():
     v = sub.add_parser("validate", help="validate a deployment's config")
     v.add_argument("name"); v.set_defaults(func=cmd_validate)
     r = sub.add_parser("run", help="run a deployment")
-    r.add_argument("name"); r.set_defaults(func=cmd_run)
+    r.add_argument("name")
+    r.add_argument("--env", help="environment for a scenario deployment "
+                   "(simple or realistic); ignored for other modes")
+    r.set_defaults(func=cmd_run)
     args = ap.parse_args()
     args.func(args)
 

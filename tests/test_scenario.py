@@ -81,14 +81,24 @@ class TestValidate(unittest.TestCase):
 
 
 class TestShippedScenarios(unittest.TestCase):
-    def test_all_shipped_scenarios_valid(self):
-        model = sc.PointModel(CONFIG)
-        for fn in os.listdir(SCEN_DIR):
-            if not fn.endswith(".json"):
-                continue
-            with open(os.path.join(SCEN_DIR, fn)) as f:
-                s = json.load(f)
-            self.assertEqual(sc.validate(s, model), [], "%s should validate" % fn)
+    """Every shipped scenario references its points by role, so it must validate on
+    every defined environment once that environment's role map is applied."""
+    def test_all_shipped_scenarios_valid_on_every_environment(self):
+        with open(sc.ENV_FILE) as f:
+            env_names = list(json.load(f).get("environments", {}))
+        self.assertTrue(env_names, "at least one environment should be defined")
+        for env_name in env_names:
+            env = sc.load_environment(env_name)
+            model = sc.PointModel(env.get("config", CONFIG))
+            for fn in os.listdir(SCEN_DIR):
+                if not fn.endswith(".json"):
+                    continue
+                with open(os.path.join(SCEN_DIR, fn)) as f:
+                    s = json.load(f)
+                sc.apply_environment(s, env)
+                sc._filter_baseline(s, model)
+                self.assertEqual(sc.validate(s, model), [],
+                                 "%s should validate on %s" % (fn, env_name))
 
 
 class TestGroundTruthLabel(unittest.TestCase):

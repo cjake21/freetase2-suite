@@ -99,7 +99,7 @@
       "from": "RIVER345",
       "to": "EAST345",
       "x": 0.08,
-      "limit_mw": 300
+      "limit_mw": 130
     },
     {
       "id": "L_CEN_NTIE",

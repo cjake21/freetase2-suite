@@ -1,0 +1,43 @@
+{
+  "_comment": "Attack scenarios reference points by ROLE, not by a hard-coded point name. An environment maps each role to a real point and supplies the point model (config) and the power-flow grid. The console lets an attack run on either environment, so one scenario plays out on the simple 4-bus lab and on the realistic regional grid (grid-demo) without duplicating the scenario. To add a role, give it an entry in every environment.",
+
+  "environments": {
+    "simple": {
+      "label": "Simple lab (4-bus)",
+      "description": "The original four-bus teaching grid. Small and legible: one tie, two feeders, a transformer. Best for seeing an attack's mechanics in one screen.",
+      "config": "config/scada.json",
+      "grid": "config/grid.json",
+      "roles": {
+        "tie_breaker": "plc1_brk",
+        "tie_flow": "plc1_mw",
+        "avr_setpoint": "plc1_avr",
+        "bus_kv": "plc1_kv",
+        "xfmr_temp": "plc3_temp",
+        "feeder_breaker_1": "plc2_brk",
+        "feeder_breaker_2": "rtu1_brk"
+      },
+      "stations": {
+        "comms_station": "plc3"
+      }
+    },
+
+    "realistic": {
+      "label": "Realistic regional grid (grid-demo)",
+      "description": "The moderate regional grid behind grid-demo: two generation plants, a 345 kV backbone, four 138 kV load substations, two external ties, ~110 points. Opening the Central-East tie triggers a real multi-substation cascade. Best for showing an attack the way an operator would actually see it.",
+      "config": "config/scada_utility.json",
+      "grid": "config/grid_utility.json",
+      "roles": {
+        "tie_breaker": "CENTRAL_EAST_CB",
+        "tie_flow": "CENTRAL_EAST_MW",
+        "avr_setpoint": "RIVER_AVR",
+        "bus_kv": "CENTRAL_BUS_KV",
+        "xfmr_temp": "OAKDALE_T1_TEMP",
+        "feeder_breaker_1": "EAST_STEEL_CB",
+        "feeder_breaker_2": "NTIE_CB"
+      },
+      "stations": {
+        "comms_station": "steel"
+      }
+    }
+  }
+}

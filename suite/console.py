@@ -59,6 +59,7 @@ class Supervisor:
     def __init__(self):
         self.proc = None
         self.name = None
+        self.environment = None
         self._logf = None
         self.runs = {}            # deployment name -> last start time (ISO)
         self.logpath = os.path.join(tempfile.gettempdir(), "freetase2-suite-deploy.log")
@@ -78,6 +79,7 @@ class Supervisor:
             if not running:
                 self.proc = None
                 self.name = None
+                self.environment = None
             dep = tase2ctl.load_profiles().get(self.name or "", {})
             http_port = dep.get("http_port", 8800) if running else None
             return {
@@ -90,23 +92,25 @@ class Supervisor:
                 # SCADA HMI link that points at a port nothing is listening on.
                 "hmi_ready": running and _port_open("127.0.0.1", http_port),
                 "mode": dep.get("mode") if running else None,
+                "environment": self.environment if running else None,
                 "security": dep.get("security") if running else None,
                 "protocol": dep.get("protocol") if running else None,
                 "last_run": self.runs.get(self.name) if running else None,
                 "docs_available": os.path.isdir(DOCS_HTML),
             }
 
-    def start(self, name):
+    def start(self, name, environment=None):
         with self._lock:
             if self.proc is not None and self.proc.poll() is None:
                 raise RuntimeError("a deployment is already running; stop it first")
-            argv, env = tase2ctl.build_launch(name)
+            argv, env = tase2ctl.build_launch(name, environment)
             self._logf = open(self.logpath, "wb")
             self.proc = subprocess.Popen(
                 argv, env=env, cwd=tase2ctl.ROOT,
                 stdout=self._logf, stderr=subprocess.STDOUT,
                 start_new_session=True)
             self.name = name
+            self.environment = env.get("ENVIRONMENT")
             self.runs[name] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     def stop(self):
@@ -207,6 +211,16 @@ class Handler(BaseHTTPRequestHandler):
             return self._file("console.html", "text/html; charset=utf-8")
         if path == "/api/deployments":
             return self._json(200, tase2ctl.load_profiles())
+        if path == "/api/environments":
+            # The environment choices (label + which deployments may use them) so the
+            # console can offer a simple/realistic picker on the scenario attacks.
+            envs = tase2ctl.load_environments()
+            choices = [{"name": n, "label": e.get("label", n),
+                        "description": e.get("description", "")}
+                       for n, e in envs.items()]
+            per_dep = {n: tase2ctl.deployment_environments(d)
+                       for n, d in tase2ctl.load_profiles().items()}
+            return self._json(200, {"choices": choices, "deployments": per_dep})
         if path == "/api/status":
             return self._json(200, SUP.status())
         if path == "/api/logs":
@@ -251,7 +265,7 @@ class Handler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0) or 0)
             body = json.loads(self.rfile.read(length) or b"{}") if length else {}
             if path == "/api/start":
-                SUP.start(body["name"])
+                SUP.start(body["name"], body.get("environment"))
             elif path == "/api/stop":
                 SUP.stop()
             else:

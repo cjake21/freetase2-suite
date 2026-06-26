@@ -6,6 +6,17 @@ Keep a Changelog, and the project aims to follow semantic versioning.
 ## [Unreleased]
 
 ### Added
+- Run any attack on either of two environments: scenarios now reference their points
+  by role (the tie breaker, the tie flow, a bus voltage, a feeder breaker, the
+  communications station) instead of by a fixed point name, and an environment
+  (`config/environments.json`) maps each role to a real point and supplies the point
+  model and the power-flow grid. Two environments ship: `simple` (the four-bus lab)
+  and `realistic` (the regional `grid-demo` grid), both tuned so the scripted tie
+  opening tips into a cascade. The scenario engine resolves roles at run time
+  (`suite/scenario.py` `--env`), `tase2ctl run <attack> --env <name>` selects the
+  environment, and each Attack Scenario in the control console has an environment
+  dropdown next to its Start button. See `docs/guides/attacks` and
+  `docs/guides/scenarios`.
 - Utility-scale physics: a new `grid-demo` deployment drives a moderate regional
   grid (`config/grid_utility.json`, ~110 ICCP points) with the full telemetry
   taxonomy a real inter-control-centre feed carries (MW and MVAR, bus kV, system

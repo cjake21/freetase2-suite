@@ -3,25 +3,58 @@
   "description": "The quiet attack, the one signatures struggle with. There is no breaker open and no obvious command. The adversary identifies the controllable parameters, nudges a setpoint to push the grid toward instability, and then feeds the operator false telemetry so the developing problem stays hidden: the tie-line flow reads normal while it really climbs, and the transformer oil temperature is held below its alarm limit while it really heats. This is manipulation of view and alarm suppression layered on a modify-parameter attack, the same idea as the false operator view in the Ukraine incidents. The grid is live, so the real values move underneath the spoof. ATT&CK for ICS: T0861 Point & Tag Identification, T0836 Modify Parameter, T0856 Spoof Reporting Message, T0832 Manipulation of View, T0878 Alarm Suppression.",
   "seed": 7,
   "period": 2.0,
-  "grid": "config/grid.json",
   "attacker": true,
-
   "timeline": [
-    { "at": 0,  "do": "annotate", "note": "normal operations" },
-
-    { "at": 4,  "do": "scan", "points": ["plc1_mw", "plc1_kv", "plc1_avr", "plc3_temp"],
-      "technique": "T0861", "note": "point and tag identification: find the AVR setpoint, the tie flow, the transformer thermal" },
-
-    { "at": 10, "do": "setpoint", "point": "plc1_avr", "value": 1.08,
-      "technique": "T0836", "label": "malicious", "note": "modify parameter: raise the AVR setpoint to drive toward instability" },
-
-    { "at": 16, "do": "inject", "point": "plc1_mw", "value": 11.0, "technique": "T0856",
-      "note": "spoof reporting: hold the tie-line flow at a normal reading so the rising load is hidden" },
-
-    { "at": 22, "do": "inject", "point": "plc3_temp", "value": 62.0, "technique": "T0878",
-      "note": "alarm suppression: keep the transformer oil temperature below its alarm limit while it really climbs" },
-
-    { "at": 40, "do": "annotate", "note": "operator view stays calm; nothing alarms" },
-    { "at": 42, "do": "end" }
+    {
+      "at": 0,
+      "do": "annotate",
+      "note": "normal operations"
+    },
+    {
+      "at": 4,
+      "do": "scan",
+      "roles": [
+        "tie_flow",
+        "bus_kv",
+        "avr_setpoint",
+        "xfmr_temp"
+      ],
+      "technique": "T0861",
+      "note": "point and tag identification: find the AVR setpoint, the tie flow, the transformer thermal"
+    },
+    {
+      "at": 10,
+      "do": "setpoint",
+      "role": "avr_setpoint",
+      "value": 1.08,
+      "technique": "T0836",
+      "label": "malicious",
+      "note": "modify parameter: raise the AVR setpoint to drive toward instability"
+    },
+    {
+      "at": 16,
+      "do": "inject",
+      "role": "tie_flow",
+      "value": 11.0,
+      "technique": "T0856",
+      "note": "spoof reporting: hold the tie-line flow at a normal reading so the rising load is hidden"
+    },
+    {
+      "at": 22,
+      "do": "inject",
+      "role": "xfmr_temp",
+      "value": 62.0,
+      "technique": "T0878",
+      "note": "alarm suppression: keep the transformer oil temperature below its alarm limit while it really climbs"
+    },
+    {
+      "at": 40,
+      "do": "annotate",
+      "note": "operator view stays calm; nothing alarms"
+    },
+    {
+      "at": 42,
+      "do": "end"
+    }
   ]
 }

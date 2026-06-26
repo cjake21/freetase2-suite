@@ -39,6 +39,26 @@ Because the command lives in `<point>_ctl` and the read-back lives in the
 monitoring point, the gateway never overwrites a command with field data or vice
 versa. Control takes a few poll cycles end to end.
 
+The round trip, with select-before-operate, looks like this:
+
+```mermaid
+sequenceDiagram
+    participant Op as Operator (HMI)
+    participant Br as HMI bridge
+    participant Sv as tase2_server
+    participant Gw as gateway
+    participant Dev as field device
+    Op->>Br: SELECT then OPERATE point_ctl
+    Br->>Sv: Block 5 select + operate
+    Sv->>Sv: enforce SBO + allowlist, store command
+    Gw->>Sv: read point_ctl
+    Gw->>Dev: write command down (Modbus / DNP3)
+    Dev-->>Gw: new state on next poll
+    Gw->>Sv: ICCP write the read-back point
+    Sv-->>Br: Block 2 report
+    Br-->>Op: HMI shows the new value
+```
+
 ## Synthetic value source: `simulateValues()`
 
 The server has a built-in synthetic source, `simulateValues()`, that runs once per

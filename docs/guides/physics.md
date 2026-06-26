@@ -41,6 +41,25 @@ go offline and their voltages read not-valid. The sequence plays out a couple of
 seconds apart, so you can follow the cascade across the screen instead of everything
 failing at once.
 
+## The cascade loop
+
+Each tick the engine runs the same loop: read the breaker controls, solve the grid,
+check every line against its limit, and trip the single worst overload. Tripping one
+line per tick is deliberate, it lets the failure ripple across the screen one
+substation at a time instead of collapsing all at once.
+
+```mermaid
+flowchart TD
+    T["next tick"] --> RB["read breaker controls<br/>(operator / attack / scenario)"]
+    RB --> SOL["solve DC power flow<br/>line flows from bus angles"]
+    SOL --> CHK{"any line<br/>over its limit?"}
+    CHK -->|no| PUB["publish points over ICCP<br/>MW, MVAR, kV, Hz, taps, temps"]
+    CHK -->|yes| TRIP["trip the worst-overloaded line"]
+    TRIP --> ISL["re-check connectivity:<br/>buses with no path to generation<br/>go blacked out (not-valid)"]
+    ISL --> PUB
+    PUB --> T
+```
+
 ## How it works
 
 Each tick the engine solves a DC power flow over the grid model

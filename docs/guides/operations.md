@@ -66,6 +66,14 @@ you which files to edit for each.
 |------------|-----------|------|---------|
 | `scenario-demo` | A scripted run of injection, spoof, unauthorized command, and comms loss | scenario | insecure |
 | `cascade-demo` | A scripted attack on a live grid that triggers a real cascading blackout | scenario + physics | insecure |
+| `ukraine2015-attack` | The 2015 Sandworm/BlackEnergy blackout, reproduced on the grid | scenario | insecure |
+| `industroyer-attack` | The 2016 Industroyer/CRASHOVERRIDE breaker sweep | scenario | insecure |
+| `stealthy-attack` | Manipulation of view with alarm suppression (false data, hidden) | scenario | insecure |
+| `recon-attack` | Discovery and collection: an adversary mapping the model | scenario | insecure |
+
+Each Attack Scenario runs on either environment, the four-bus `simple` lab or the
+regional `realistic` grid (`grid-demo`). A dropdown on the slot, next to Start,
+selects which; see [Start and stop](#start-and-stop) below.
 
 **Defense and federation** (hardening and per-peer scoping):
 
@@ -123,6 +131,13 @@ Press **Start** on a deployment row. The console launches the deployment process
 group and the top bar flips to RUNNING. Only one deployment runs at a time
 (deployments share ports by default), so Start is disabled on the others while one
 is running.
+
+For an Attack Scenario, a small **environment dropdown** sits next to Start. It
+selects the grid the attack plays on, the four-bus `simple` lab or the regional
+`realistic` grid, and the engine resolves the scenario's point roles to that
+environment before it runs. The detail panel shows the chosen environment and the
+matching `--env` command line. See {doc}`attacks` for the two environments and
+{doc}`scenarios` for how roles resolve.
 
 Press **Stop** on the running row, or **STOP ALL** in the top bar, to terminate the
 whole process group (server, gateway, bridge, simulators).

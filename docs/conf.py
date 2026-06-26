@@ -17,6 +17,7 @@ version = release
 
 extensions = [
     "myst_parser",
+    "sphinxcontrib.mermaid",   # flowchart and sequence diagrams in the guides
 ]
 
 # Custom templates (overrides the page <title> separator; no em dash).
@@ -31,6 +32,11 @@ myst_enable_extensions = [
     "tasklist",
 ]
 myst_heading_anchors = 3
+
+# Treat a ```mermaid fence as the mermaid directive. This way the same fence renders
+# as a diagram both in this Sphinx portal and on GitHub (which renders ```mermaid
+# natively), so the guides look right wherever they are read.
+myst_fence_as_directive = ["mermaid"]
 
 source_suffix = {
     ".md": "markdown",

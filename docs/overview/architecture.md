@@ -1,6 +1,41 @@
 # Architecture summary
 
-## Data flow
+## The whole picture
+
+One TASE.2 server sits at the center. What drives its points changes with the
+operating mode (a field gateway, the built-in simulator, a scripted scenario, or a
+power-flow co-simulation), but everything downstream of the server, the ICCP
+reporting, the HMI, the capture and detection tools, is identical. That is the point
+of the design: swap the value source, keep the protocol path real.
+
+```mermaid
+flowchart LR
+    subgraph SRC["value source (pick one mode)"]
+        ING["ingestion gateway<br/>Modbus / DNP3"]
+        SIM["server simulator<br/>simulateValues()"]
+        SCN["scenario engine<br/>scripted timeline"]
+        PHY["physics co-sim<br/>DC power flow"]
+    end
+    SRV["tase2_server<br/>TASE.2 / ICCP on :102"]
+    BR["HMI bridge<br/>+ ICCP agent"]
+    HMI["web SCADA HMI<br/>:8800"]
+    ATK["attacker peer<br/>recon / FDI / commands"]
+    CAP["capture + dataset<br/>+ detection scoring"]
+
+    ING -->|ICCP write| SRV
+    SIM -->|in-process| SRV
+    SCN -->|ICCP write| SRV
+    PHY -->|ICCP write| SRV
+    SRV -->|Block 2 reports| BR --> HMI
+    HMI -->|Block 5 operate| SRV
+    ATK <-->|own association| SRV
+    SRV -.->|on the wire| CAP
+```
+
+## Field data flow
+
+In ingestion mode the value source is real field equipment, and data moves in two
+directions through the gateway:
 
 ```text
                          monitoring (read up)
@@ -39,9 +74,10 @@ Two directions:
 
 The node is one tool with explicit modes, not separate builds:
 
-- **Value source.** Simulation (synthetic values from the server, or the stub
-  driver) for training and capture, or ingestion (real field data via Modbus or
-  DNP3).
+- **Value source.** Simulation (synthetic values from the server) for training and
+  capture, ingestion (real field data via Modbus or DNP3), scenario (a scripted,
+  labelled timeline, see {doc}`../guides/scenarios`), or physics (a power-flow grid
+  model whose solved state drives the points, see {doc}`../guides/physics`).
 - **Security profile.** `insecure` (plaintext, open command path) for attack demos,
   or `hardened` (mutual TLS plus a command allowlist) for defense testing. See
   {doc}`../guides/configuration`.

@@ -112,7 +112,22 @@ An environment lives in `config/environments.json`. It gives a `config` (the poi
 model), a `grid` (the power-flow model), a `roles` map (role to point), and a
 `stations` map (station role to station), and the engine applies it before it plays
 the timeline. Two are defined: `simple` (the four-bus lab) and `realistic` (the
-regional `grid-demo` grid). Pick one with `--env` or, in the console, with the
+regional `grid-demo` grid). One role-based scenario therefore resolves onto two
+different grids without being rewritten:
+
+```mermaid
+flowchart LR
+    S["Scenario step<br/>role: tie_breaker"]
+    S --> R{"--env"}
+    R -->|simple| A["environments.json<br/>simple.roles"]
+    R -->|realistic| B["environments.json<br/>realistic.roles"]
+    A --> AP["point: plc1_brk<br/>grid: grid.json"]
+    B --> BP["point: CENTRAL_EAST_CB<br/>grid: grid_utility.json"]
+    AP --> AG["4-bus lab cascade<br/>B2, B3, B4 dark"]
+    BP --> BG["regional cascade<br/>EAST345, STIE345,<br/>PINE138, STEEL138 dark"]
+```
+
+Pick one with `--env` or, in the console, with the
 environment dropdown on an Attack Scenario:
 
 ```bash

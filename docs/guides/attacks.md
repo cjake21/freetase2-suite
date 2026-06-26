@@ -28,6 +28,38 @@ The four headline attacks are also deployments in the control console under Atta
 Scenarios: `ukraine2015-attack`, `industroyer-attack`, `stealthy-attack`, and
 `recon-attack`.
 
+That single run is the whole pipeline: the attack plays as real traffic, the engine
+writes a ground-truth timeline beside the capture, and the two are joined into a
+labelled dataset you can score a detector against.
+
+```mermaid
+flowchart LR
+    RUN["run an attack<br/>tase2ctl run / 58_run_dataset.sh"]
+    RUN --> PCAP["packet capture<br/>capture.pcap"]
+    RUN --> GT["ground-truth timeline<br/>groundtruth.jsonl"]
+    PCAP --> JOIN["dataset.py<br/>join by timestamp"]
+    GT --> JOIN
+    JOIN --> DS["labelled windows<br/>benign / malicious + technique"]
+    DS --> SCORE["score.py<br/>recall, time-to-detect, FP rate"]
+```
+
+## The attacker is a separate peer
+
+What makes this traffic realistic is that the attack does not come from the trusted
+feed. Benign operations arrive on the normal association; the recon reads, false
+data, unauthorized commands, and floods arrive on a second association from a
+separate peer, exactly the way a real intrusion looks on the wire. The ground truth
+records which association each event came from, so a detector can be graded on
+whether it told the two apart.
+
+```mermaid
+flowchart LR
+    OP["trusted control center<br/>(benign operations)"] -->|association 1| SRV["tase2_server<br/>:102"]
+    ADV["adversary peer<br/>(recon, FDI, commands, flood)"] -->|association 2| SRV
+    SRV -->|Block 2 reports| HMI["operator HMI"]
+    SRV -.->|both associations<br/>on the wire| SENSOR["capture + IDS"]
+```
+
 ## Two environments: simple or realistic
 
 Every attack runs on either of two environments, and you pick which when you launch

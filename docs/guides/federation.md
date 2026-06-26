@@ -92,7 +92,26 @@ python3 suite/tase2ctl.py run federation-demo
 That brings up two control centers. CC-A runs its own server with live data. CC-B
 runs its own server with no local source. The relay (`suite/relay.py`) subscribes to
 CC-A, receives its reports, and writes the agreed tie points into CC-B over real
-ICCP. Open <http://127.0.0.1:8800> and you are looking at CC-B's screen: its
+ICCP.
+
+```mermaid
+flowchart LR
+    subgraph A["CC-A (has live data)"]
+        SA["tase2_server A<br/>:102"]
+        BLT["bilateral table<br/>scopes what A shares"]
+    end
+    RELAY["relay.py<br/>(the tie)"]
+    subgraph B["CC-B (no local source)"]
+        SB["tase2_server B<br/>:10602"]
+        HB["CC-B HMI<br/>intertie view"]
+    end
+    BLT -. enforces .-> SA
+    SA -->|Block 2 reports<br/>scoped by table| RELAY
+    RELAY -->|ICCP write<br/>mapped tie points| SB
+    SB --> HB
+```
+
+Open <http://127.0.0.1:8800> and you are looking at CC-B's screen: its
 intertie view shows CC-A's tie-line flow, voltage, and breaker, data that CC-B never
 measured but received across the tie, the same way one utility sees another's across
 a real interconnect.

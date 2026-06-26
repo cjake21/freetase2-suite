@@ -60,6 +60,30 @@ python3 scripts/validate_config.py config/scada.json ingest/tags.json
 
 The launch scripts run this first, so a typo is reported clearly.
 
+## Attack environments: `config/environments.json`
+
+Attack scenarios reference their points by role rather than by a fixed name, so one
+scenario plays on more than one grid. An environment binds those roles to a real
+point model and a power-flow grid. Two ship:
+
+| Environment | Point model | Grid | Use it for |
+|-------------|-------------|------|-----------|
+| `simple` | `config/scada.json` | `config/grid.json` | The four-bus lab: small and legible |
+| `realistic` | `config/scada_utility.json` | `config/grid_utility.json` | The regional `grid-demo` grid: utility-scale, a real cascade |
+
+Each environment entry has a `config` (point model), a `grid` (power-flow model), a
+`roles` map (role name to point name), and a `stations` map (station role to
+station). Select one with the dropdown on an Attack Scenario in the console, or with
+`--env` on the command line:
+
+```bash
+python3 suite/tase2ctl.py run ukraine2015-attack --env realistic
+```
+
+To add an environment, give every role and station defined by the scenarios an entry
+under a new key. See {doc}`scenarios` for how roles resolve and {doc}`attacks` for
+the two grids side by side.
+
 ## Security profile
 
 `PROFILE` selects the security posture on the launch scripts:
@@ -84,6 +108,7 @@ The `insecure` profile is for closed ranges and attack demonstrations only. Use
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `SCADA_CONFIG` | `config/scada.json` | point model path |
+| `ENVIRONMENT` | `simple` | attack environment (`simple` or `realistic`); sets the scenario's points and grid |
 | `TAGS` | demo tags | tag database path |
 | `TASE2_PORT` | `102` | server TCP port |
 | `HTTP_PORT` | `8800` | HMI port |

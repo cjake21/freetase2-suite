@@ -110,7 +110,7 @@ anything could overwrite it.
 | Mode | `simulateValues()` | Value source | Connects to |
 |------|--------------------|--------------|-------------|
 | simulation (`sim-demo`) | on | synthetic sine/toggle | nothing |
-| ingestion (`field-demo`) | off (`-n`) | field devices via the gateway | the configured devices |
+| ingestion (`testbed-demo`) | off (`-n`) | field devices via the gateway | the configured devices |
 
 ### Virtual devices that still produce real protocol
 
@@ -130,7 +130,7 @@ simulators off, and the northbound TASE.2 behaviour is identical. See
 
 ## A worked example
 
-1. Start the universal demo from the launcher (deployment `field-demo`), or:
+1. Start the universal demo from the launcher (deployment `testbed-demo`), or:
    ```bash
    MODBUS_SIM=1 DNP3_SIM=1 TAGS=ingest/tags.demo.json ./scripts/55_run_scada.sh
    ```

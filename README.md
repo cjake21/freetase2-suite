@@ -47,7 +47,7 @@ Prefer the command line:
 
 ```bash
 python3 suite/tase2ctl.py list
-python3 suite/tase2ctl.py run physics-demo     # or any deployment below
+python3 suite/tase2ctl.py run grid-demo        # or any deployment below
 ```
 
 ## What it does
@@ -65,7 +65,7 @@ pick in the console. Every mode publishes real TASE.2 / ICCP traffic on the wire
 
 The shipped deployments (the console groups them by purpose):
 
-- **Demos and training**: `sim-demo`, `field-demo`, `physics-demo`
+- **Demos and training**: `sim-demo`, `testbed-demo`, `grid-demo`
 - **Attack scenarios**: `scenario-demo`, `cascade-demo`, `ukraine2015-attack`,
   `industroyer-attack`, `stealthy-attack`, `recon-attack`
 - **Defense and federation**: `field-hardened`, `field-federated`, `federation-demo`

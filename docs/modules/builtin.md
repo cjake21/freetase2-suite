@@ -38,7 +38,7 @@ A DNP3 (IEEE 1815) master over TCP, dependency free (`ingest/dnp3.py`).
 ## Mixing protocols
 
 Drivers are chosen per tag, so one tag database and one gateway can ingest Modbus
-and DNP3 at the same time into a single ICCP point model. The `field-demo`
+and DNP3 at the same time into a single ICCP point model. The `testbed-demo`
 deployment and `ingest/tags.demo.json` do exactly this. To go from the bench to a
 live testbed, point the device hosts at your real PLCs and RTUs and turn the
 simulators off.

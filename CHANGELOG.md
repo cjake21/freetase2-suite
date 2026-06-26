@@ -6,6 +6,15 @@ Keep a Changelog, and the project aims to follow semantic versioning.
 ## [Unreleased]
 
 ### Added
+- Utility-scale physics: a new `grid-demo` deployment drives a moderate regional
+  grid (`config/grid_utility.json`, ~110 ICCP points) with the full telemetry
+  taxonomy a real inter-control-centre feed carries (MW and MVAR, bus kV, system
+  frequency, MWh accumulators, transformer taps and oil temperatures, tie schedules
+  and Area Control Error). Point writes are batched so the HMI stays online at this
+  scale. Regenerate the model with `scripts/gen_utility_model.py`. The demo list is
+  consolidated to `sim-demo`, `testbed-demo` (renamed from `field-demo`), and
+  `grid-demo`; the small four-bus `physics-demo` is removed, and its scripted cascade
+  lives on in `cascade-demo`.
 - Single launch and packaging: `tase2-suite` (and `suite/launcher.py`) is one
   command that checks the native build, starts the control console, and opens it in a
   browser. `pyproject.toml` adds project metadata and the `tase2-suite` console

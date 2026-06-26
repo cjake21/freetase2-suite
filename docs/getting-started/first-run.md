@@ -7,14 +7,14 @@ After {doc}`../installation/local`:
 python3 suite/console.py        # open http://127.0.0.1:8080
 ```
 
-In the console, select the **field-demo** deployment, review its pre-launch checks,
+In the console, select the **testbed-demo** deployment, review its pre-launch checks,
 and press **Start**. Then open its SCADA HMI from the top-bar link (or
 `http://127.0.0.1:8800`). See {doc}`../guides/operations` for the full launcher and
 HMI walkthrough.
 
-## What the field-demo runs
+## What the testbed-demo runs
 
-`field-demo` is the universal multi-protocol demo. One gateway ingests Modbus and
+`testbed-demo` is the universal multi-protocol demo. One gateway ingests Modbus and
 DNP3 at the same time, using the bundled Modbus slave simulator and DNP3 outstation
 simulator, so it runs with no hardware:
 
@@ -30,7 +30,7 @@ simulator, so it runs with no hardware:
 You can also start the same deployment directly:
 
 ```bash
-python3 suite/tase2ctl.py run field-demo
+python3 suite/tase2ctl.py run testbed-demo
 # or, the underlying launcher with the bench simulators:
 MODBUS_SIM=1 DNP3_SIM=1 TAGS=ingest/tags.demo.json ./scripts/55_run_scada.sh
 ```

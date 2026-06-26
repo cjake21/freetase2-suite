@@ -56,9 +56,9 @@ you which files to edit for each.
 
 | Deployment | Use it for | Mode | Profile |
 |------------|-----------|------|---------|
-| `sim-demo` | Fastest look at the HMI; synthetic data, connects to nothing | simulation | insecure |
-| `field-demo` | The full real pipeline: Modbus and DNP3 ingested into ICCP | ingestion | insecure |
-| `physics-demo` | A live power-flow grid; open the main tie breaker to watch a cascade | physics | insecure |
+| `sim-demo` | Fastest look at the HMI; synthetic data, connects to nothing; minimal wire traffic, good for tool-based interaction | simulation | insecure |
+| `testbed-demo` | The full real pipeline: Modbus and DNP3 ingested into ICCP; a small lab testbed | ingestion | insecure |
+| `grid-demo` | Rich, utility-realistic ICCP traffic from a regional grid model | physics | insecure |
 
 **Attack scenarios** (scripted, repeatable; these feed the dataset and scoring tools):
 
@@ -89,7 +89,7 @@ Which one when:
 - **Building or running a physical testbed, or adding a real PLC or RTU**: use
   `physical`. Edit `config/scada.json` and `ingest/tags.json`. See
   {doc}`physical-testbed`.
-- **Running a simulated testbed, or adding a virtual device**: use `field-demo`
+- **Running a simulated testbed, or adding a virtual device**: use `testbed-demo`
   (virtual devices with real protocol; edit `config/scada.json`,
   `ingest/tags.demo.json`, and the simulator value tables) or `sim-demo` (pure
   synthetic values; edit `config/scada.json` only). See {doc}`virtual-testbed`.
@@ -204,7 +204,7 @@ you type while you are editing it, even as live reports refresh the panel.
 
 After you operate, the command travels to the device and the read-back returns over
 ICCP, so the point's value updates within a few seconds. For a step-by-step
-walkthrough of each control type against the `field-demo` points, see
+walkthrough of each control type against the `testbed-demo` points, see
 {doc}`hmi-demo`. See {doc}`tase2-on-the-wire` for exactly what happens on the wire.
 
 ### Alarms

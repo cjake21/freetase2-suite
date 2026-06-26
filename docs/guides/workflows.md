@@ -10,8 +10,8 @@
 ## Run a no-hardware demo
 
 ```bash
-python3 suite/console.py                # control console; start field-demo (Modbus + DNP3)
-python3 suite/tase2ctl.py run field-demo # same, from the command line
+python3 suite/console.py                # control console; start testbed-demo (Modbus + DNP3)
+python3 suite/tase2ctl.py run testbed-demo # same, from the command line
 ./scripts/50_run_hmi.sh                  # HMI over simulated values, no gateway
 ```
 

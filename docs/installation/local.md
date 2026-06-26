@@ -38,9 +38,9 @@ runs a short headless smoke of the SCADA stack. Expected final line:
 ## Run
 
 ```bash
-python3 suite/console.py        # control console on :8080; start the field-demo
+python3 suite/console.py        # control console on :8080; start the testbed-demo
 ./scripts/55_run_scada.sh       # or run the stack directly; HMI on :8800
 ```
 
-`field-demo` ingests Modbus and DNP3 together using the bundled simulators. See
+`testbed-demo` ingests Modbus and DNP3 together using the bundled simulators. See
 {doc}`../getting-started/first-run`.

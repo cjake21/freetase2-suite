@@ -16,30 +16,36 @@ exactly what training and showcases need.
 ## Run it
 
 ```bash
-python3 suite/tase2ctl.py run physics-demo
+python3 suite/tase2ctl.py run grid-demo
 ```
 
-That starts the server, the HMI bridge, and the co-simulation. Open
-<http://127.0.0.1:8800>. Every station shows live values that come from the grid
-solver: tie-line flow, feeder flows, bus voltages, transformer loading and oil
-temperature. The grid sits in a stable steady state.
+That starts the server, the HMI bridge, and the co-simulation over the regional
+grid model. Open <http://127.0.0.1:8800>. Every station shows live values that come
+from the grid solver: generator MW and MVAR, line flows and reactive power, bus
+voltages, system frequency, transformer loading and oil temperature, tie schedules
+and Area Control Error. The grid sits in a stable steady state.
 
-Now cause a cascade. Open the main tie breaker, `plc1_brk`, from the HMI (it is a
-select-before-operate control, so select then operate). Watch what happens over the
-next few seconds:
+Open a breaker from the HMI (it is a select-before-operate control, so select then
+operate) and the flow redistributes across the rest of the network on the next
+solve. The regional grid is built to ride that through, so to watch a full
+cascading blackout unfold one line at a time, run the scripted `cascade-demo`, which
+opens a breaker on a grid deliberately tuned to tip into a cascade:
 
-1. The tie opens, so its flow drops to zero.
-2. The parallel feeder now has to carry that power. It goes over its limit and
-   trips.
-3. With both paths gone, the load island loses its source and collapses. Those
-   stations go offline and their voltages read not-valid.
+```bash
+python3 suite/tase2ctl.py run cascade-demo
+```
 
-The whole sequence plays out one line at a time, a couple of seconds apart, so you
-can follow the cascade across the screen instead of everything failing at once.
+There the tie opens and its flow drops to zero, the parallel path goes over its
+limit and trips, and the load island loses its source and collapses, those stations
+go offline and their voltages read not-valid. The sequence plays out a couple of
+seconds apart, so you can follow the cascade across the screen instead of everything
+failing at once.
 
 ## How it works
 
-Each tick the engine solves a DC power flow over the model in `config/grid.json`.
+Each tick the engine solves a DC power flow over the grid model
+(`config/grid_utility.json` for `grid-demo`, `config/grid.json` for the smaller
+tuned grid behind `cascade-demo`).
 DC power flow is the standard fast approximation used across the industry: it models
 real power, line reactance, and bus voltage angles, and from the angles it computes
 the flow on every line. It then checks each line against its limit. If a line is
@@ -79,10 +85,12 @@ python3 suite/physics.py validate --grid config/grid.json --config config/scada.
 ```
 
 The validator checks that buses and lines line up, that there is exactly one slack,
-and that every breaker and measurement names a real line, bus, and point. The demo
-grid is deliberately tuned so the network is comfortably stable at rest but a single
-tie opening tips it into a cascade, which makes the point in one click. Change the
-limits and the loads and you change where, and whether, it cascades.
+and that every breaker and measurement names a real line, bus, and point. The
+smaller `config/grid.json` behind `cascade-demo` is deliberately tuned so the
+network is comfortably stable at rest but a single tie opening tips it into a
+cascade, which makes the point in one click; the regional `config/grid_utility.json`
+behind `grid-demo` is built to stay stable. Change the limits and the loads and you
+change where, and whether, a grid cascades.
 
 ## Why this is more than a nicer demo
 

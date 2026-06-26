@@ -2,7 +2,7 @@
 
 This is a hands-on walkthrough of the SCADA HMI: how to use the runtime panel to
 read live values and how to issue real controls that change state in the
-environment. It uses the `field-demo` deployment, whose bundled virtual devices
+environment. It uses the `testbed-demo` deployment, whose bundled virtual devices
 emit real Modbus and DNP3, so every action travels the same path it would to real
 hardware. For what happens on the wire, see {doc}`tase2-on-the-wire`; for the panel
 reference, see {doc}`operations`.
@@ -20,13 +20,13 @@ Bring up the deployment and open the HMI:
 python3 suite/console.py            # launcher on http://127.0.0.1:8080
 ```
 
-In the launcher, Start **`field-demo`**, then open the **SCADA HMI** link (or go to
+In the launcher, Start **`testbed-demo`**, then open the **SCADA HMI** link (or go to
 `http://127.0.0.1:8800`). Confirm the status strip shows **LINK: NORMAL** or
 **DEGRADED** and that **SCAN** reads RUN. One station (`plc3`, TRANSFORMER T1) is
 deliberately offline in this deployment, so DEGRADED is expected and useful: it
 shows what a lost device looks like.
 
-The controllable points in `field-demo` are:
+The controllable points in `testbed-demo` are:
 
 | Point | Station | Control | Mode | What it does |
 |-------|---------|---------|------|--------------|
@@ -116,7 +116,7 @@ points at the device or the read-back path.
 - **Engineering units.** Setpoints and values are in engineering units (MW, kV, and
   so on). The gateway handles scaling to and from raw device registers, so you never
   type raw counts.
-- **Offline stations cannot be controlled.** `plc3` is offline in `field-demo`; its
+- **Offline stations cannot be controlled.** `plc3` is offline in `testbed-demo`; its
   points read NOT VALID and issuing a control has nothing to act on. This is the
   expected behavior for a lost device.
 - **It is real traffic.** Even with virtual devices, the northbound path is real

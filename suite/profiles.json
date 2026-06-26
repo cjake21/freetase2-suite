@@ -5,7 +5,7 @@
     "sim-demo": {
       "description": "Simulation mode. The server drives every point with synthetic values (simulateValues); connects to nothing. For training, capture, and parser/IDS testing.",
       "category": "demos",
-      "use_when": "Fastest look at the HMI. Synthetic data, connects to nothing.",
+      "use_when": "Fastest; look at the HMI. Synthetic data, connects to nothing. Minimal traffic on the wire, good for testing tool-based interaction.",
       "mode": "simulation",
       "protocol": "ICCP/MMS",
       "security": "insecure",
@@ -14,10 +14,10 @@
       "tase2_port": 102
     },
 
-    "field-demo": {
-      "description": "Universal ingestion: one gateway ingests Modbus (plc1/plc2) and DNP3 (rtu1) at the same time, with plc3 unreachable to show a degraded station. Uses the bundled Modbus and DNP3 simulators so it runs with no hardware.",
+    "testbed-demo": {
+      "description": "Universal ingestion, a small lab testbed: one gateway ingests Modbus (plc1/plc2) and DNP3 (rtu1) at the same time, with plc3 unreachable to show a degraded station. Uses the bundled Modbus and DNP3 simulators so it runs with no hardware.",
       "category": "demos",
-      "use_when": "The full real pipeline: Modbus and DNP3 ingested into ICCP.",
+      "use_when": "The full real pipeline: Modbus and DNP3 ingested into ICCP. Simulates a small lab testbed scenario.",
       "mode": "ingestion",
       "protocol": "Modbus + DNP3",
       "security": "insecure",
@@ -28,23 +28,10 @@
       "tase2_port": 102
     },
 
-    "physics-demo": {
-      "description": "Physics mode. A DC power-flow co-simulation (config/grid.json) drives the points from a real four-bus grid model. Flows are live; open the main tie breaker (plc1_brk) from the HMI or an attack and watch the parallel line overload and the failure cascade line by line. No gateway, no simulation.",
+    "grid-demo": {
+      "description": "Utility-scale physics, a regional grid. A moderate regional grid (config/grid_utility.json: two generation plants, a 345 kV backbone, four 138 kV load substations, two external tie-lines) drives ~110 ICCP points with the full telemetry taxonomy a real inter-control-centre feed carries: MW and MVAR, bus kV, system frequency, MWh accumulators, transformer taps and oil temperatures, tie schedules and Area Control Error, and breaker status and control. Built for rich, realistic TASE.2 traffic for detection buildouts. Regenerate the model with scripts/gen_utility_model.py.",
       "category": "demos",
-      "use_when": "A live power-flow grid. Open the main tie breaker to watch a cascade.",
-      "mode": "physics",
-      "protocol": "ICCP/MMS",
-      "security": "insecure",
-      "config": "config/scada.json",
-      "grid": "config/grid.json",
-      "http_port": 8800,
-      "tase2_port": 102
-    },
-
-    "utility-physics": {
-      "description": "Utility-scale physics. A moderate regional grid (config/grid_utility.json: two generation plants, a 345 kV backbone, four 138 kV load substations, two external tie-lines) drives ~110 ICCP points with the full telemetry taxonomy a real inter-control-centre feed carries: MW and MVAR, bus kV, system frequency, MWh accumulators, transformer taps and oil temperatures, tie schedules and Area Control Error, and breaker status and control. Built for rich, realistic TASE.2 traffic for detection buildouts. Regenerate the model with scripts/gen_utility_model.py.",
-      "category": "demos",
-      "use_when": "Rich, utility-realistic ICCP traffic from a regional grid (~110 points).",
+      "use_when": "Rich, utility-realistic ICCP traffic from a regional grid model.",
       "mode": "physics",
       "protocol": "ICCP/MMS",
       "security": "insecure",

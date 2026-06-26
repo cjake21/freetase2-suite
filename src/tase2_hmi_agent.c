@@ -284,6 +284,44 @@ doWriteQ(MmsConnection con, const char* item, int isFloat, const char* val,
     fflush(stdout);
 }
 
+/* Write a whole tick of points in one MMS request. strtok continues over the
+ * WRITEB command line already consumed by handleCommand. Each point contributes
+ * three variables (Value, Flags, TimeStamp). */
+static void
+doWriteBatch(MmsConnection con)
+{
+    LinkedList items = LinkedList_create();
+    LinkedList values = LinkedList_create();
+    char* name;
+    while ((name = strtok(NULL, " \t")) != NULL) {
+        char* isf = strtok(NULL, " \t");
+        char* val = strtok(NULL, " \t");
+        char* q   = strtok(NULL, " \t");
+        char* ts  = strtok(NULL, " \t");
+        if (!isf || !val || !q || !ts) break;
+        char full[96];
+        snprintf(full, sizeof full, "%s$Value", name);
+        LinkedList_add(items, strdup(full));
+        LinkedList_add(values, atoi(isf) ? MmsValue_newFloat((float) atof(val))
+                                         : MmsValue_newIntegerFromInt32(atoi(val)));
+        snprintf(full, sizeof full, "%s$Flags", name);
+        LinkedList_add(items, strdup(full));
+        MmsValue* qb = MmsValue_newBitString(8);
+        MmsValue_setBitStringFromInteger(qb, (uint32_t) atoi(q));
+        LinkedList_add(values, qb);
+        snprintf(full, sizeof full, "%s$TimeStamp", name);
+        LinkedList_add(items, strdup(full));
+        LinkedList_add(values, MmsValue_newIntegerFromInt32((int32_t) atol(ts)));
+    }
+    MmsError err = MMS_ERROR_NONE;
+    if (LinkedList_size(items) > 0)
+        MmsConnection_writeMultipleVariables(con, &err, g_dom, items, values, NULL);
+    LinkedList_destroyDeep(items, (LinkedListValueDeleteFunction) free);
+    LinkedList_destroyDeep(values, (LinkedListValueDeleteFunction) MmsValue_delete);
+    printf("{\"ev\":\"writeb\",\"err\":%d}\n", err);
+    fflush(stdout);
+}
+
 static void
 doOperate(MmsConnection con, const char* device, double command, const char* tag, bool isSetpoint)
 {
@@ -402,6 +440,13 @@ handleCommand(MmsConnection con, char* line)
         char* ts   = strtok(NULL, " \t");
         if (item && isf && val && qual && ts)
             doWriteQ(con, item, atoi(isf), val, atoi(qual), atol(ts));
+    } else if (!strcmp(cmd, "WRITEB")) {
+        /* WRITEB <pt> <isf> <val> <q> <ts> <pt> <isf> <val> <q> <ts> ...
+         * Write a whole tick's points (Value, Flags, TimeStamp each) in ONE MMS
+         * request. A co-simulation publishing 100+ points per second otherwise
+         * issues hundreds of synchronous round-trips and starves on the
+         * single-threaded server; one batched write collapses that to one. */
+        doWriteBatch(con);
     } else if (!strcmp(cmd, "OPERATE")) {
         /* OPERATE <device> <intCommand> [tag] */
         char* dev = strtok(NULL, " \t");
@@ -487,7 +532,7 @@ main(int argc, char** argv)
     printf("}\n");
     fflush(stdout);
 
-    char line[8192];   /* SUBSCRIBE/SNAPSHOT can carry 100+ point names on one line */
+    static char line[65536];   /* SUBSCRIBE and WRITEB batches carry many points on one line */
     while (g_running) {
         /* Pump the MMS stack so unsolicited reports are delivered promptly. */
         MmsConnection_tick(con);

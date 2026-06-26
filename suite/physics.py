@@ -459,6 +459,21 @@ class Agent:
         self._send("WRITEQ %s %d %s %d %d" % (point, 1 if is_float else 0, v,
                                               int(quality), int(ts)))
 
+    def write_batch(self, items, chunk=30):
+        """Write a tick of points in batched MMS requests. items is a list of
+        (point, value, is_float, quality, ts). A single MMS write tops out near a
+        hundred variables, and each point is three (Value, Flags, TimeStamp), so the
+        batch is split into chunks of <chunk> points. Even chunked this is a handful
+        of round-trips per tick instead of one per point, which is what keeps a
+        100+ point co-simulation from starving on the single-threaded server."""
+        for i in range(0, len(items), chunk):
+            parts = ["WRITEB"]
+            for point, value, is_float, quality, ts in items[i:i + chunk]:
+                v = repr(float(value)) if is_float else str(int(round(value)))
+                parts.append("%s %d %s %d %d" % (point, 1 if is_float else 0, v,
+                                                 int(quality), int(ts)))
+            self._send(" ".join(parts))
+
     def request_read(self, item):
         self._send("READ " + item)
 
@@ -539,21 +554,22 @@ class Runner:
 
     def _publish(self):
         ts = int(time.time())
+        batch = []
         # analog and thermal measurements
         for spec in self.grid.measurements:
             point = spec["point"]
             value, qual = self.grid.measure(spec)
-            self.agent.write_q(point, value, self.is_float.get(point, True),
-                               QUALITY[qual], ts)
+            batch.append((point, value, self.is_float.get(point, True), QUALITY[qual], ts))
         # breaker state points reflect line in-service
         for br in self.grid.breakers:
             ln = self.grid.line_by_id.get(br["line"])
             state = 1 if (ln and ln.in_service) else 0
-            self.agent.write_q(br["point"], state, False, QUALITY["valid"], ts)
+            batch.append((br["point"], state, False, QUALITY["valid"], ts))
         # nominals (points the grid does not model, kept fresh and online)
         for point, val in self.grid.nominals.items():
-            self.agent.write_q(point, val, self.is_float.get(point, True),
-                               QUALITY["valid"], ts)
+            batch.append((point, val, self.is_float.get(point, True), QUALITY["valid"], ts))
+        # one batched MMS write per tick instead of one round-trip per point
+        self.agent.write_batch(batch)
 
     def run(self):
         if not self.agent.ensure_online(timeout=8, retries=5):

@@ -6,6 +6,14 @@ Keep a Changelog, and the project aims to follow semantic versioning.
 ## [Unreleased]
 
 ### Added
+- Caldera blackout playbook (`docs/guides/caldera-blackout`): a modeled, tested
+  attack chain that drives the TASE.2 Caldera plugin against `grid-demo` and
+  `testbed-demo` to a blackout, with the ordered abilities (recon, baseline, false
+  data, then a Block 5 select-before-operate that opens the inter-area tie and
+  cascades the grid), the exact control objects per deployment, the integer-SBO
+  select the suite's breakers require, the operator-equivalent steps from the HMI,
+  and the capture-and-label path for data collection. Confirmed end to end against
+  the regional power-flow model.
 - Packet-level ground-truth timestamps: every event in the ground-truth timeline now
   records its time at microsecond resolution (`wall` to six decimals) plus a UTC
   string (`utc`), captured the moment the event's PDU goes on the wire, so each

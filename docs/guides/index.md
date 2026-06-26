@@ -6,6 +6,7 @@
 workflows
 operations
 caldera-usage
+caldera-blackout
 hmi-demo
 scenarios
 attacks

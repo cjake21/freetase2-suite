@@ -446,6 +446,37 @@ exist on the agent at the paths you give. The plaintext ability works on any bui
   can overwrite your value before a report carries it. The FreeTASE2 server has an
   injection-hold option to hold a written value long enough to be reported.
 
+#### Spoof Point Quality (Validity)
+
+- **Why:** falsify a point's quality flag instead of its value. An indication point
+  is `{ Value, Flags, TimeStamp }`; `Flags` is the quality byte. Mark a real alarming
+  reading not-valid so the HMI greys it out, or force a frozen value valid so a stale
+  reading looks live.
+- **When:** alongside or instead of value injection, to manipulate the operator's view.
+- **Where:** impair-process-control. ATT&CK T0836.
+- **How (inputs):** `tase2.fdi.point` (the point), `tase2.quality.flags` (0 valid, 4
+  suspect, 8 held, 12 not-valid), `tase2.comp.flags` (the quality leaf, normally `Flags`).
+
+#### Suppress Alarm via Quality Hold
+
+- **Why:** force a point's quality to HELD (`8`) so the alarm engine stops evaluating
+  it. The value can stay correct while a real overload or open breaker raises no alarm.
+- **Where:** inhibit-response-function. ATT&CK T0878.
+- **How (inputs):** `tase2.fdi.point`, `tase2.alarm.flags` (default `8`), `tase2.comp.flags`.
+
+#### Forge Point Time Tag
+
+- **Why:** falsify a point's `TimeStamp` (Unix seconds). Make a frozen, spoofed value
+  look freshly updated (a current or future epoch), or backdate a real value so it is
+  treated as stale and ignored.
+- **Where:** impair-process-control. ATT&CK T0856.
+- **How (inputs):** `tase2.fdi.point`, `tase2.time.value` (epoch seconds), `tase2.comp.timestamp`
+  (the time-tag leaf, normally `TimeStamp`).
+
+These three (with Inject False Telemetry) let you build a spoof that reads plausibly,
+looks live, and raises no alarm. See the {doc}`blackout playbook <caldera-blackout>`
+for using them to mask a tie-line overload.
+
 #### Block 5 Control (Select-Before-Operate)
 
 - **Why:** actuate a control object the proper way, as a select then an operate then
@@ -687,7 +718,11 @@ For example, three attempts over a slow WAN with a generous timeout:
     --connect-timeout 5000 --retries 2 --retry-delay 2000 --id-spec none
 ```
 
-The same five flags are on `tase2_fuzz` too.
+The same five flags are on `tase2_fuzz` too. Inside Caldera you do not edit commands:
+every ability ends with a `#{tase2.conn.flags}` placeholder, so put the flags once in
+the `tase2.conn.flags` fact (it defaults to empty) and they apply to the whole
+operation. In the Magma console, the **Advanced connection** panel builds that fact
+from connect/request timeout and retry fields.
 
 ### Select-before-operate styles
 

@@ -235,10 +235,27 @@ function renderAlarms(alarms){
 function pushEvent(type,sevc,text){ events.unshift({t:nowUTC(),type,sev:sevc,text}); if(events.length>200)events.pop(); renderEvents(); }
 function renderEvents(){
   const host=$("event-body");
+  const keep=host.scrollTop;            // preserve scroll so reading history is not disrupted
   const rows=events.filter(e=>evFilter==="ALL"||e.type===evFilter);
   if(!rows.length){ host.innerHTML='<div class="recline"><span class="rr"></span><span class="rt"></span><span class="rty"></span><span class="rm" style="color:var(--text-dim)">no events</span></div>'; return; }
   host.innerHTML=rows.slice(0,140).map(e=>`<div class="recline ${e.sev==="crit"?"crit":e.sev==="warn"?"warn":e.sev==="rx"?"rx":""}">
     <span class="rr"></span><span class="rt">${e.t}</span><span class="rty">${e.type}</span><span class="rm">${esc(e.text)}</span></div>`).join("");
+  host.scrollTop=keep;
+}
+function setupRecorderResize(logId,storeKey){
+  const grip=$("rec-grip"), log=document.getElementById(logId);
+  if(!grip||!log) return;
+  const DEF=150, MIN=80, maxH=()=>Math.max(MIN,window.innerHeight-140);
+  const apply=h=>{log.style.height=Math.min(maxH(),Math.max(MIN,h))+"px";};
+  const saved=parseInt(localStorage.getItem(storeKey),10);
+  if(saved) apply(saved);
+  let startY=0,startH=0,drag=false;
+  grip.addEventListener("pointerdown",e=>{drag=true;startY=e.clientY;startH=log.getBoundingClientRect().height;grip.classList.add("dragging");grip.setPointerCapture(e.pointerId);e.preventDefault();});
+  grip.addEventListener("pointermove",e=>{if(drag)apply(startH+(startY-e.clientY));});
+  const end=()=>{if(!drag)return;drag=false;grip.classList.remove("dragging");localStorage.setItem(storeKey,parseInt(log.style.height,10)||DEF);};
+  grip.addEventListener("pointerup",end); grip.addEventListener("pointercancel",end);
+  grip.addEventListener("dblclick",()=>{apply(DEF);localStorage.setItem(storeKey,DEF);});
+  window.addEventListener("resize",()=>{if(log.style.height)apply(parseInt(log.style.height,10)||DEF);});
 }
 function detectEvents(stations,alarms){
   const rt=state.report&&state.report.last_report_time;
@@ -257,6 +274,7 @@ function init(){
   document.querySelectorAll("th[data-sort]").forEach(th=>th.onclick=()=>{ const k=th.dataset.sort; if(sortKey===k)sortDir*=-1; else{sortKey=k;sortDir=1;} renderTable(); });
   $("ackbtn").onclick=()=>{ buildAlarms(state.stations||[],points()).forEach(a=>acked.add(a.id)); render(); };
   $("evfilters").querySelectorAll(".lf").forEach(c=>c.onclick=()=>{ evFilter=c.dataset.ev; $("evfilters").querySelectorAll(".lf").forEach(x=>x.classList.toggle("on",x===c)); renderEvents(); });
+  setupRecorderResize("event-body","hmi.recorderHeight");
   fetch("/api/state").then(r=>r.json()).then(s=>{state=s;render();});
   const es=new EventSource("/api/events");
   es.onmessage=ev=>{ try{ state=JSON.parse(ev.data); render(); }catch(e){} };

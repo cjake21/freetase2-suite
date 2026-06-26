@@ -154,6 +154,12 @@ deployment. Use the **System / Runtime / Error** filters:
 This is where you confirm the ICCP association came online, that the gateway is
 polling, and that commands were pushed to devices.
 
+The panel is resizable: drag the grip bar along its top edge to pull it up over the
+rack and read more at once, and the rest of the layout reflows around it. Scroll up
+to review history (the live tail will not yank you back down while you are reading),
+and double-click the grip to snap back to the default height. The size is remembered
+between visits.
+
 ### Open the SCADA HMI and the documentation
 
 When a deployment is running, the **SCADA HMI** link in the top bar opens that
@@ -234,7 +240,10 @@ clears and recurs.
 
 The bottom **event log** is a timestamped timeline with severity tags, filterable
 by type: ALM (alarms), CMD (operator commands), RX (reports received), SYS (station
-comms changes). It is the audit trail of what happened and when.
+comms changes). It is the audit trail of what happened and when. Drag the grip bar
+on its top edge to resize it (the points table reflows around it) so you can pull it
+up halfway and scroll the full history; double-click the grip to reset, and the size
+is remembered between visits.
 
 ## Where to go next
 

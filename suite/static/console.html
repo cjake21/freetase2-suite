@@ -160,9 +160,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);font-size
 .ann.crit .annt{color:#efc9c0;}
 
 /* ===== event recorder ===== */
-.recorder{background:var(--bg);border-top:1px solid var(--blackwell);flex:0 0 auto;}
+.recorder{background:var(--bg);border-top:1px solid var(--blackwell);flex:0 0 auto;
+  display:flex;flex-direction:column;min-height:0;}
+.rec-grip{height:9px;flex:0 0 9px;cursor:row-resize;background:var(--panel-2);
+  border-bottom:1px solid var(--line-soft);position:relative;touch-action:none;}
+.rec-grip::before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:48px;height:3px;border-radius:2px;background:var(--line);}
+.rec-grip:hover::before{background:var(--muted);}
+.rec-grip.dragging::before{background:var(--green);}
 .rec-hd{display:flex;align-items:center;justify-content:space-between;padding:7px 16px;
-  border-bottom:1px solid var(--line-soft);}
+  border-bottom:1px solid var(--line-soft);flex:0 0 auto;}
 .rec-hd .rl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);}
 .rec-hd .rl.data{color:var(--muted);letter-spacing:.04em;text-transform:none;}
 .logfilters{display:inline-flex;border:1px solid var(--line-soft);border-radius:2px;overflow:hidden;}
@@ -199,6 +206,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-ui);font-size
 </div>
 
 <section class="recorder">
+  <div class="rec-grip" id="rec-grip" title="Drag to resize, double-click to reset"></div>
   <div class="rec-hd">
     <span class="rl">Event Recorder</span>
     <span style="display:flex;align-items:center;gap:10px">
@@ -361,11 +369,30 @@ function sect(t,warn){return `<div class="sect ${warn?"warn":""}">${t}</div>`;}
 function logType(l){if(/error|fail|denied|reject|exception/i.test(l))return"ERROR";if(/^\[(scada|console|modbus-sim|dnp3-sim|fed|physics|scenario)/i.test(l))return"SYSTEM";return"RUNTIME";}
 function logCls(l){if(/error|fail|denied|reject|exception/i.test(l))return"err";if(/warn|stale|down|offline|notvalid|overload/i.test(l))return"warn";if(/^\[(scada|console|modbus-sim|dnp3-sim|fed|physics|scenario)/i.test(l))return"sys";return"";}
 async function refreshLog(){
-  if(!status.running){$("log").innerHTML='<div class="logline"><span class="lr"></span><span class="lt"></span><span class="lm" style="color:var(--dim)">no deployment energized</span></div>';$("rec-state").textContent="idle";return;}
+  const el=$("log");
+  if(!status.running){el.innerHTML='<div class="logline"><span class="lr"></span><span class="lt"></span><span class="lm" style="color:var(--dim)">no deployment energized</span></div>';$("rec-state").textContent="idle";return;}
   const r=await api("/api/logs");let lines=r.lines||[]; if(logFilter!=="ALL")lines=lines.filter(l=>logType(l)===logFilter);
   $("rec-state").textContent=lines.length+" lines";
-  $("log").innerHTML=lines.map(l=>{const t=l.match(/\b(\d{2}:\d{2}:\d{2})\b/);return `<div class="logline ${logCls(l)}"><span class="lr"></span><span class="lt">${t?t[1]:""}</span><span class="lm">${esc(l)}</span></div>`;}).join("");
-  $("log").scrollTop=$("log").scrollHeight;
+  // only snap to the newest line if the user is already at the bottom, so scrolling
+  // up to read the attack chain is not yanked back down by the 2.5s refresh
+  const atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<40;
+  el.innerHTML=lines.map(l=>{const t=l.match(/\b(\d{2}:\d{2}:\d{2})\b/);return `<div class="logline ${logCls(l)}"><span class="lr"></span><span class="lt">${t?t[1]:""}</span><span class="lm">${esc(l)}</span></div>`;}).join("");
+  if(atBottom) el.scrollTop=el.scrollHeight;
+}
+function setupRecorderResize(logId,storeKey){
+  const grip=$("rec-grip"), log=document.getElementById(logId);
+  if(!grip||!log) return;
+  const DEF=150, MIN=80, maxH=()=>Math.max(MIN,window.innerHeight-140);
+  const apply=h=>{log.style.height=Math.min(maxH(),Math.max(MIN,h))+"px";};
+  const saved=parseInt(localStorage.getItem(storeKey),10);
+  if(saved) apply(saved);
+  let startY=0,startH=0,drag=false;
+  grip.addEventListener("pointerdown",e=>{drag=true;startY=e.clientY;startH=log.getBoundingClientRect().height;grip.classList.add("dragging");grip.setPointerCapture(e.pointerId);e.preventDefault();});
+  grip.addEventListener("pointermove",e=>{if(drag)apply(startH+(startY-e.clientY));});
+  const end=()=>{if(!drag)return;drag=false;grip.classList.remove("dragging");localStorage.setItem(storeKey,parseInt(log.style.height,10)||DEF);};
+  grip.addEventListener("pointerup",end); grip.addEventListener("pointercancel",end);
+  grip.addEventListener("dblclick",()=>{apply(DEF);localStorage.setItem(storeKey,DEF);});
+  window.addEventListener("resize",()=>{if(log.style.height)apply(parseInt(log.style.height,10)||DEF);});
 }
 function clk(){return new Date().toTimeString().slice(0,8);}
 function tickClock(){const e=$("hclk");if(e)e.textContent=clk();}
@@ -377,6 +404,7 @@ async function init(){
   const ev=await api("/api/environments"); envChoices=ev.choices||[]; envDeps=ev.deployments||{};
   $("estop").onclick=async()=>{if(confirm("STOP ALL: de-energize the running deployment?")){status=await api("/api/stop",{});await refresh();}};
   $("logfilters").querySelectorAll(".lf").forEach(b=>b.onclick=()=>{logFilter=b.dataset.f;$("logfilters").querySelectorAll(".lf").forEach(x=>x.classList.toggle("on",x===b));refreshLog();});
+  setupRecorderResize("log","console.recorderHeight");
   await loadAllPrechecks();
   await refresh(); setInterval(tickClock,1000); setInterval(refresh,2500);
 }

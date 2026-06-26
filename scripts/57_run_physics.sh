@@ -43,7 +43,7 @@ python3 "$PROJECT/scripts/gen_server_points.py" "$CONFIG" > "$POINTS"
 echo "[physics] config $CONFIG -> $(wc -l < "$POINTS") points, domain $DOMAIN"
 
 PIDS=()
-cleanup() { sudo pkill -x tase2_server 2>/dev/null || true; for p in "${PIDS[@]:-}"; do kill "$p" 2>/dev/null || true; done; rm -f "$POINTS"; }
+cleanup() { sudo pkill -x tase2_server 2>/dev/null || true; sudo pkill -x tase2_hmi_agent 2>/dev/null || true; for p in "${PIDS[@]:-}"; do kill "$p" 2>/dev/null || true; done; rm -f "$POINTS"; }
 trap cleanup EXIT INT TERM
 
 # Security profile, same as the other stacks.

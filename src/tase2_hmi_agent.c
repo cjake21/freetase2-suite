@@ -60,7 +60,12 @@ static const char*  g_dom = "TestDomain";
  * (with an explicit list) or defaulted to the lab's tm1/tm2/ts1/ts2 set. The
  * report handler maps data set members back to these names by position, so this
  * must match the order ds_hmi is defined in. */
-#define MAX_PTS 64
+#define MAX_PTS 256
+/* A single TASE.2 data set / transfer-set report tops out around 64 members in
+ * libIEC61850, so the point set is split across several transfer sets
+ * (DSTransferSet01..08), each carrying up to CHUNK_PTS points. This is also how a
+ * real ICCP feed groups telemetry into multiple transfer sets. */
+#define CHUNK_PTS 50
 static char g_pts[MAX_PTS][64];
 static int  g_nPts = 0;
 
@@ -146,6 +151,18 @@ reportHandler(void* parameter, char* domainName, char* variableListName,
 {
     int n = MmsValue_getArraySize(value);
 
+    /* The members in this report belong to one transfer set (DSTransferSet0N),
+     * which carries chunk N-1 of the point set, i.e. points starting at
+     * (N-1)*CHUNK_PTS. Recover that base from the transfer-set name so each report
+     * maps its members back to the right point names. */
+    int base = 0;
+    if (variableListName) {
+        int v = 0, seen = 0;
+        for (const char* c = variableListName; *c; c++)
+            if (*c >= '0' && *c <= '9') { v = v * 10 + (*c - '0'); seen = 1; }
+        if (seen && v >= 1) base = (v - 1) * CHUNK_PTS;
+    }
+
     printf("{\"ev\":\"report\",\"ts\":");
     emitJsonString(variableListName ? variableListName : "?");
 
@@ -158,18 +175,18 @@ reportHandler(void* parameter, char* domainName, char* variableListName,
     if (n >= 3)
         printf(",\"cond\":%d", MmsValue_toInt32(MmsValue_getElement(value, 2)));
 
-    /* members start at index 3, mapped to the subscribed point order */
-    for (int i = 3; i < n && (i - 3) < g_nPts; i++) {
-        printf(",\"%s\":", g_pts[i - 3]);
+    /* members start at index 3, mapped to this transfer set's point chunk */
+    for (int i = 3; i < n && (base + i - 3) < g_nPts; i++) {
+        printf(",\"%s\":", g_pts[base + i - 3]);
         emitPointValue(MmsValue_getElement(value, i));
     }
     printf(",\"q\":{");
-    for (int i = 3; i < n && (i - 3) < g_nPts; i++)
-        printf("%s\"%s\":%d", (i > 3) ? "," : "", g_pts[i - 3],
+    for (int i = 3; i < n && (base + i - 3) < g_nPts; i++)
+        printf("%s\"%s\":%d", (i > 3) ? "," : "", g_pts[base + i - 3],
                memberQuality(MmsValue_getElement(value, i)));
     printf("},\"t\":{");
-    for (int i = 3; i < n && (i - 3) < g_nPts; i++)
-        printf("%s\"%s\":%ld", (i > 3) ? "," : "", g_pts[i - 3],
+    for (int i = 3; i < n && (base + i - 3) < g_nPts; i++)
+        printf("%s\"%s\":%ld", (i > 3) ? "," : "", g_pts[base + i - 3],
                memberTime(MmsValue_getElement(value, i)));
     printf("}}\n");
     fflush(stdout);
@@ -179,29 +196,43 @@ static void
 doSubscribe(MmsConnection con)
 {
     MmsError err;
+    int nsets = (g_nPts + CHUNK_PTS - 1) / CHUNK_PTS;
+    if (nsets < 1) nsets = 1;
+    if (nsets > 8) nsets = 8;          /* the server provides DSTransferSet01..08 */
 
-    LinkedList dsVars = LinkedList_create();
-    for (int i = 0; i < g_nPts; i++)
-        LinkedList_add(dsVars,
-            MmsVariableAccessSpecification_create(strdup(g_dom), strdup(g_pts[i])));
-    MmsConnection_deleteNamedVariableList(con, &err, g_dom, "ds_hmi");
-    MmsConnection_defineNamedVariableList(con, &err, g_dom, "ds_hmi", dsVars);
-    LinkedList_destroyDeep(dsVars,
-        (LinkedListValueDeleteFunction) MmsVariableAccessSpecification_destroy);
-
-    MmsConnection_writeVariable(con, &err, g_dom, "DSTransferSet01$DataSetName",
-                                MmsValue_newVisibleString("ds_hmi"));
-    MmsConnection_writeVariable(con, &err, g_dom, "DSTransferSet01$Interval",
-                                MmsValue_newIntegerFromInt32(5));
-    MmsConnection_writeVariable(con, &err, g_dom, "DSTransferSet01$DSConditionsRequested",
-                                MmsValue_newIntegerFromInt32(0x06));
-    MmsConnection_writeVariable(con, &err, g_dom, "DSTransferSet01$RBE",
-                                MmsValue_newBoolean(true));
     MmsConnection_setInformationReportHandler(con, reportHandler, NULL);
-    MmsConnection_writeVariable(con, &err, g_dom, "DSTransferSet01$Status",
-                                MmsValue_newIntegerFromInt32(1));
 
-    printf("{\"ev\":\"subscribed\",\"dataset\":\"ds_hmi\",\"transferset\":\"DSTransferSet01\"}\n");
+    for (int c = 0; c < nsets; c++) {
+        int start = c * CHUNK_PTS;
+        int end = start + CHUNK_PTS;
+        if (end > g_nPts) end = g_nPts;
+        char ds[32], ts[24], item[48];
+        snprintf(ds, sizeof ds, "ds_hmi_%d", c);
+        snprintf(ts, sizeof ts, "DSTransferSet%02d", c + 1);
+
+        LinkedList dsVars = LinkedList_create();
+        for (int i = start; i < end; i++)
+            LinkedList_add(dsVars,
+                MmsVariableAccessSpecification_create(strdup(g_dom), strdup(g_pts[i])));
+        MmsConnection_deleteNamedVariableList(con, &err, g_dom, ds);
+        MmsConnection_defineNamedVariableList(con, &err, g_dom, ds, dsVars);
+        LinkedList_destroyDeep(dsVars,
+            (LinkedListValueDeleteFunction) MmsVariableAccessSpecification_destroy);
+
+        snprintf(item, sizeof item, "%s$DataSetName", ts);
+        MmsConnection_writeVariable(con, &err, g_dom, item, MmsValue_newVisibleString(ds));
+        snprintf(item, sizeof item, "%s$Interval", ts);
+        MmsConnection_writeVariable(con, &err, g_dom, item, MmsValue_newIntegerFromInt32(5));
+        snprintf(item, sizeof item, "%s$DSConditionsRequested", ts);
+        MmsConnection_writeVariable(con, &err, g_dom, item, MmsValue_newIntegerFromInt32(0x06));
+        snprintf(item, sizeof item, "%s$RBE", ts);
+        MmsConnection_writeVariable(con, &err, g_dom, item, MmsValue_newBoolean(true));
+        snprintf(item, sizeof item, "%s$Status", ts);
+        MmsConnection_writeVariable(con, &err, g_dom, item, MmsValue_newIntegerFromInt32(1));
+    }
+
+    printf("{\"ev\":\"subscribed\",\"dataset\":\"ds_hmi\",\"transferset\":\"DSTransferSet01\",\"sets\":%d}\n",
+           nsets);
     fflush(stdout);
 }
 
@@ -456,7 +487,7 @@ main(int argc, char** argv)
     printf("}\n");
     fflush(stdout);
 
-    char line[256];
+    char line[8192];   /* SUBSCRIBE/SNAPSHOT can carry 100+ point names on one line */
     while (g_running) {
         /* Pump the MMS stack so unsolicited reports are delivered promptly. */
         MmsConnection_tick(con);

@@ -109,6 +109,7 @@ typedef struct {
     int      interval;          /* integrity period (s); 0 => use default */
     int      dsConditions;      /* requested condition mask */
     uint32_t reportsSent;
+    void*    owner;             /* connection that enabled it; reports go only here */
 } TransferSet;
 
 static MmsServer       g_server = NULL;
@@ -554,6 +555,11 @@ connectionHandler(void* parameter, MmsServerConnection connection,
         printf("[tase2] association from %s\n", peer ? peer : "?");
     } else if (event == MMS_SERVER_CONNECTION_CLOSED) {
         LinkedList_remove(g_connections, connection);
+        for (int i = 0; i < MAX_TRANSFER_SETS; i++)
+            if (g_transferSets[i].owner == (void*) connection) {
+                g_transferSets[i].owner = NULL;
+                g_transferSets[i].enabled = false;
+            }
         printf("[tase2] association closed (%s)\n", peer ? peer : "?");
     }
     Semaphore_post(g_lock);
@@ -913,6 +919,10 @@ writeHandler(void* parameter, MmsDomain* domain, const char* variableId,
                        g_transferSets[i].name, g_transferSets[i].dataSetName);
             } else if (member && strcmp(member, "Status") == 0) {
                 g_transferSets[i].enabled = (MmsValue_toInt32(value) != 0);
+                /* remember which peer enabled it: its reports go only to that
+                 * connection, not broadcast to every association (broadcasting
+                 * floods writer/co-sim connections that never subscribed). */
+                g_transferSets[i].owner = g_transferSets[i].enabled ? (void*) connection : NULL;
                 if (tsv) MmsValue_setInt32(MmsValue_getElement(tsv, 10), MmsValue_toInt32(value));
                 printf("[tase2] %s %s\n", g_transferSets[i].name,
                        g_transferSets[i].enabled ? "ENABLED" : "disabled");
@@ -1020,15 +1030,17 @@ reportingTick(int integrityDue)
     Semaphore_wait(g_lock);
     for (int i = 0; i < MAX_TRANSFER_SETS; i++) {
         TransferSet* ts = &g_transferSets[i];
-        if (!ts->enabled) continue;
+        if (!ts->enabled || ts->owner == NULL) continue;
         int cond = integrityDue ? DSCOND_INTEGRITY : DSCOND_OBJECT_CHANGE;
 
-        LinkedList c = LinkedList_getNext(g_connections);
+        /* only report to the still-connected owner */
+        int alive = 0;
+        for (LinkedList c = LinkedList_getNext(g_connections); c; c = LinkedList_getNext(c))
+            if (c->data == ts->owner) { alive = 1; break; }
+        if (!alive) { ts->enabled = false; ts->owner = NULL; continue; }
+
         MmsServer_lockModel(g_server);
-        while (c) {
-            sendTransferSetReport((MmsServerConnection) c->data, ts, cond);
-            c = LinkedList_getNext(c);
-        }
+        sendTransferSetReport((MmsServerConnection) ts->owner, ts, cond);
         MmsServer_unlockModel(g_server);
     }
     Semaphore_post(g_lock);

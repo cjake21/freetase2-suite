@@ -41,6 +41,19 @@
       "tase2_port": 102
     },
 
+    "utility-physics": {
+      "description": "Utility-scale physics. A moderate regional grid (config/grid_utility.json: two generation plants, a 345 kV backbone, four 138 kV load substations, two external tie-lines) drives ~110 ICCP points with the full telemetry taxonomy a real inter-control-centre feed carries: MW and MVAR, bus kV, system frequency, MWh accumulators, transformer taps and oil temperatures, tie schedules and Area Control Error, and breaker status and control. Built for rich, realistic TASE.2 traffic for detection buildouts. Regenerate the model with scripts/gen_utility_model.py.",
+      "category": "demos",
+      "use_when": "Rich, utility-realistic ICCP traffic from a regional grid (~110 points).",
+      "mode": "physics",
+      "protocol": "ICCP/MMS",
+      "security": "insecure",
+      "config": "config/scada_utility.json",
+      "grid": "config/grid_utility.json",
+      "http_port": 8800,
+      "tase2_port": 102
+    },
+
     "scenario-demo": {
       "description": "Scenario mode. A deterministic, scripted timeline (scenarios/fdi_tieline.json) is the value source: normal operations plus a false-data injection, a spoofed alarm, an unauthorized breaker open, and a comms outage. No gateway, no simulation. Writes a ground-truth label timeline for datasets and detection scoring. Reproducible every run.",
       "category": "attack",

@@ -34,7 +34,9 @@ power and angles, not voltage. Python 3.7+.
 
 import argparse
 import json
+import math
 import os
+import random
 import subprocess
 import sys
 import threading
@@ -120,6 +122,10 @@ class Grid:
         self.measurements = cfg.get("measurements", [])
         self.nominals = cfg.get("nominals", {})
         self.angles = {b: 0.0 for b in self.bus_ids}
+        # dynamics the DC solve does not give directly
+        self.nominal_hz = float(cfg.get("nominal_hz", 60.0))
+        self.freq = self.nominal_hz          # system frequency (approximation)
+        self.accum = {}                      # point name -> integrated MWh
 
     # ---- topology + solve ------------------------------------------------- #
 
@@ -230,13 +236,59 @@ class Grid:
 
     # ---- measurement mapping ---------------------------------------------- #
 
+    def _vmag(self, bus, nom):
+        """Approximate bus voltage magnitude in kV from the solved angle. DC power
+        flow does not model voltage, so this is a documented approximation: a small
+        sag proportional to the angle, clamped to a believable band; zero on a dead
+        (de-energised) bus."""
+        if not self.energized(bus):
+            return 0.0
+        sag = 1.0 - 0.10 * abs(self.angles[bus])
+        return nom * max(0.9, min(1.05, sag))
+
+    def _gen_output(self, bus):
+        """Real-power output of a generator. A non-slack unit produces its scheduled
+        MW; the slack unit produces whatever balances served load less the other
+        in-service units (it absorbs imbalance and losses)."""
+        comp = self._slack_component()
+        if bus == self.slack:
+            served = sum(v for b, v in self.load.items() if b in comp)
+            other = sum(v for b, v in self.gen.items() if b != self.slack and b in comp)
+            return max(0.0, served - other)
+        return self.gen.get(bus, 0.0) if bus in comp else 0.0
+
+    def update_dynamics(self, dt_sec):
+        """Advance the per-tick dynamics the DC solve does not give directly: system
+        frequency (a documented approximation that sags with unserved load and grid
+        stress) and energy accumulators (MWh integrated from line flow). Call once
+        per tick, after solve_dc()."""
+        comp = self._slack_component()
+        total = sum(self.load.values()) or 1.0
+        served = sum(v for b, v in self.load.items() if b in comp)
+        unserved_frac = max(0.0, (total - served) / total)
+        stress = len(self.overloaded_lines())
+        dev = -1.5 * unserved_frac - 0.02 * stress + random.uniform(-0.008, 0.008)
+        self.freq = round(max(58.5, min(60.1, self.nominal_hz + dev)), 3)
+        dt_h = dt_sec / 3600.0
+        for spec in self.measurements:
+            if spec.get("type") == "accumulator":
+                ln = self.line_by_id.get(spec.get("line"))
+                if ln is not None and ln.in_service:
+                    self.accum[spec["point"]] = round(
+                        self.accum.get(spec["point"], 0.0) + abs(ln.flow) * dt_h, 3)
+
     def measure(self, spec):
         """Compute one point's value (and quality) from the current solution."""
         kind = spec["type"]
         valid = "valid"
         if kind == "line_flow":
+            return round(self.line_by_id[spec["line"]].flow, 2), valid
+        if kind == "line_mvar":
+            # DC power flow does not model reactive power; approximate it from the
+            # real flow at a representative power factor (documented approximation).
             ln = self.line_by_id[spec["line"]]
-            return round(ln.flow, 2), ("valid" if ln.in_service else "valid")
+            pf = max(0.5, min(0.999, float(spec.get("pf", 0.95))))
+            return round(ln.flow * math.tan(math.acos(pf)), 2), valid
         if kind == "line_loading":
             ln = self.line_by_id[spec["line"]]
             pct = 100.0 * abs(ln.flow) / ln.limit if ln.limit else 0.0
@@ -244,10 +296,40 @@ class Grid:
         if kind == "bus_vmag":
             bus = spec["bus"]
             nom = float(spec.get("nominal_kv", 138.0))
+            return round(self._vmag(bus, nom), 2), (valid if self.energized(bus) else "notvalid")
+        if kind == "gen_mw":
+            bus = spec["bus"]
+            return round(self._gen_output(bus), 2), (valid if bus in self._slack_component() else "notvalid")
+        if kind == "gen_mvar":
+            bus = spec["bus"]
+            pf = max(0.5, min(0.999, float(spec.get("pf", 0.95))))
+            return round(self._gen_output(bus) * math.tan(math.acos(pf)), 2), valid
+        if kind == "frequency":
+            return self.freq, valid
+        if kind == "tap":
+            # transformer tap regulates the served-side voltage; derive an integer
+            # tap step from the voltage error against nominal.
+            bus = spec["bus"]
             if not self.energized(bus):
-                return 0.0, "notvalid"          # dead bus
-            sag = 1.0 - 0.10 * abs(self.angles[bus])
-            return round(nom * max(0.9, min(1.05, sag)), 2), valid
+                return 0, "notvalid"
+            nom = float(spec.get("nominal_kv", 138.0))
+            step = float(spec.get("step_kv", 1.5))
+            lo, hi = int(spec.get("min", -16)), int(spec.get("max", 16))
+            tap = int(round((nom - self._vmag(bus, nom)) / step)) if step else 0
+            return max(lo, min(hi, tap)), valid
+        if kind == "accumulator":
+            return round(self.accum.get(spec["point"], 0.0), 3), valid
+        if kind == "ace":
+            # Area Control Error: tie interchange error plus frequency-bias term.
+            net_actual = net_sched = 0.0
+            for t in spec.get("ties", []):
+                ln = self.line_by_id.get(t.get("line"))
+                if ln is not None:
+                    net_actual += ln.flow
+                net_sched += float(t.get("sched", 0.0))
+            bias = float(spec.get("bias_mw_per_hz", 50.0))
+            ace = (net_actual - net_sched) - 10.0 * bias * (self.freq - self.nominal_hz)
+            return round(ace, 2), valid
         if kind == "thermal":
             ln = self.line_by_id[spec["line"]]
             amb = float(spec.get("ambient_c", 50.0))
@@ -305,16 +387,22 @@ class Agent:
     def __init__(self, host, port, domain):
         if not os.path.isfile(AGENT_BIN):
             sys.exit("[physics] build first: ./scripts/10_build.sh")
-        self.proc = subprocess.Popen(
-            [AGENT_BIN, host, str(port), domain],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
-        self.online = False
+        self.host, self.port, self.domain = host, str(port), domain
         self._lock = threading.Lock()
         self._reads = {}
-        threading.Thread(target=self._reader, daemon=True).start()
+        self.proc = None
+        self.online = False
+        self._spawn()
 
-    def _reader(self):
-        for line in self.proc.stdout:
+    def _spawn(self):
+        self.online = False
+        self.proc = subprocess.Popen(
+            [AGENT_BIN, self.host, self.port, self.domain],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+        threading.Thread(target=self._reader, args=(self.proc,), daemon=True).start()
+
+    def _reader(self, proc):
+        for line in proc.stdout:
             line = line.strip()
             if not line:
                 continue
@@ -337,6 +425,26 @@ class Agent:
             if self.proc.poll() is not None:
                 return False
             time.sleep(0.1)
+        return self.online
+
+    def ensure_online(self, timeout=8.0, retries=5, backoff=1.0):
+        """Come online, retrying a transient association rejection by respawning the
+        agent. A new association can be refused when the server is mid-handshake with
+        the HMI's clients (the same intermittent connection-rejected seen elsewhere);
+        a respawn a moment later succeeds, so the co-simulation should not give up on
+        the first refusal."""
+        for attempt in range(1, retries + 1):
+            if self.wait_online(timeout):
+                return True
+            if attempt < retries:
+                log("[physics] ICCP association not online (attempt %d/%d); retrying"
+                    % (attempt, retries))
+                try:
+                    self.proc.terminate()
+                except Exception:
+                    pass
+                time.sleep(backoff)
+                self._spawn()
         return self.online
 
     def _send(self, cmd):
@@ -448,10 +556,11 @@ class Runner:
                                QUALITY["valid"], ts)
 
     def run(self):
-        if not self.agent.wait_online(timeout=10):
-            log("[physics] ICCP association did not come online; aborting")
+        if not self.agent.ensure_online(timeout=8, retries=5):
+            log("[physics] ICCP association did not come online after retries; aborting")
             return 1
         self.grid.solve_dc()
+        self.grid.update_dynamics(self.period)
         self._sync_breakers()
         log("[physics] co-simulation online: %d bus(es), %d line(s); solving every %.1fs"
             % (len(self.grid.bus_ids), len(self.grid.lines), self.period))
@@ -468,6 +577,7 @@ class Runner:
                     self.grid.solve_dc()            # refresh flows after the trip
                 if changed or event is not None:
                     self._report_flows()
+                self.grid.update_dynamics(self.period)
                 self._publish()
                 self._stop.wait(self.period)
         except KeyboardInterrupt:

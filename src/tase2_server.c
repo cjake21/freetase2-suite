@@ -110,6 +110,7 @@ typedef struct {
     int      dsConditions;      /* requested condition mask */
     uint32_t reportsSent;
     void*    owner;             /* connection that enabled it; reports go only here */
+    int      lastTick;          /* tick of the last object-change report (Interval throttle) */
 } TransferSet;
 
 static MmsServer       g_server = NULL;
@@ -1025,12 +1026,20 @@ simulateValues(void)
 }
 
 static void
-reportingTick(int integrityDue)
+reportingTick(int tick, int integrityDue)
 {
     Semaphore_wait(g_lock);
     for (int i = 0; i < MAX_TRANSFER_SETS; i++) {
         TransferSet* ts = &g_transferSets[i];
         if (!ts->enabled || ts->owner == NULL) continue;
+
+        /* Honour the transfer set's Interval: send an object-change report only
+         * every <interval> seconds rather than every tick. This keeps the report
+         * load on the single-threaded server proportional to the configured
+         * cadence, which matters once several large transfer sets are enabled. */
+        int period = ts->interval > 0 ? ts->interval : 1;
+        if (!integrityDue && (tick - ts->lastTick) < period) continue;
+        ts->lastTick = tick;
         int cond = integrityDue ? DSCOND_INTEGRITY : DSCOND_OBJECT_CHANGE;
 
         /* only report to the still-connected owner */
@@ -1171,7 +1180,7 @@ main(int argc, char** argv)
             if (!g_cfg.noSim) simulateValues();
             tick++;
             int integrityDue = (tick % g_cfg.integritySeconds) == 0;
-            reportingTick(integrityDue);
+            reportingTick(tick, integrityDue);
         }
     }
 

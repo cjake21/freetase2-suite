@@ -5,6 +5,7 @@
 
 workflows
 operations
+caldera-usage
 hmi-demo
 scenarios
 attacks

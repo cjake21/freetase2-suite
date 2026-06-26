@@ -33,7 +33,7 @@ To run a specific scenario file directly against an already-running server:
 
 ```bash
 python3 suite/scenario.py run scenarios/fdi_tieline.json \
-  --server-port 10502 --out groundtruth.jsonl
+  --server-port 102 --out groundtruth.jsonl
 ```
 
 And to check a scenario before you run it:

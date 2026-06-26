@@ -20,7 +20,7 @@ set -Eeuo pipefail
 
 PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TASE2_HOST="${TASE2_HOST:-127.0.0.1}"
-TASE2_PORT="${TASE2_PORT:-10502}"
+TASE2_PORT="${TASE2_PORT:-102}"
 HTTP_PORT="${HTTP_PORT:-8800}"
 INJECT_HOLD="${INJECT_HOLD:-30}"
 INTEGRITY="${INTEGRITY:-10}"
@@ -44,7 +44,7 @@ python3 "$PROJECT/scripts/gen_server_points.py" "$CONFIG" > "$POINTS"
 echo "[scada] config $CONFIG -> $(wc -l < "$POINTS") points, domain $DOMAIN"
 
 PIDS=()
-cleanup() { for p in "${PIDS[@]:-}"; do kill "$p" 2>/dev/null || true; done; rm -f "$POINTS"; }
+cleanup() { sudo pkill -x tase2_server 2>/dev/null || true; for p in "${PIDS[@]:-}"; do kill "$p" 2>/dev/null || true; done; rm -f "$POINTS"; }
 trap cleanup EXIT INT TERM
 
 # Optional bench field-device simulators, so the demo shows real Modbus and/or
@@ -89,7 +89,7 @@ fi
 
 # 2. server: publish the configured points, no simulation, hold injected values
 echo "[scada] starting TASE.2 server on $TASE2_HOST:$TASE2_PORT (no sim)"
-"$SRV" -i "$TASE2_HOST" -p "$TASE2_PORT" -d "$DOMAIN" -t "$INTEGRITY" -o "$INJECT_HOLD" -n -P "$POINTS" "${SRV_SEC[@]}" &
+sudo "$SRV" -i "$TASE2_HOST" -p "$TASE2_PORT" -d "$DOMAIN" -t "$INTEGRITY" -o "$INJECT_HOLD" -n -P "$POINTS" "${SRV_SEC[@]}" &
 PIDS+=("$!")
 sleep 1
 

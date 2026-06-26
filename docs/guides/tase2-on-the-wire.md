@@ -64,12 +64,12 @@ A capture against the server shows these objects (names come from
 
 ## Observing the traffic
 
-The server speaks MMS on its TCP port (10502 in the demos, 102 in production
-deployments). Capture it with Wireshark or tshark, which decode MMS:
+The server speaks MMS on its TCP port 102, the standard TASE.2 / ICCP port.
+Capture it with Wireshark or tshark, which decode MMS:
 
 ```bash
 # capture the ICCP/MMS exchange on the loopback demo port
-tshark -i lo -f "tcp port 10502" -Y mms
+tshark -i lo -f "tcp port 102" -Y mms
 ```
 
 The repository also includes capture helper scripts and a sample TASE.2 pcap under
@@ -136,7 +136,7 @@ simulators off, and the northbound TASE.2 behaviour is identical. See
    ```
 2. In another terminal, capture the ICCP exchange:
    ```bash
-   tshark -i lo -f "tcp port 10502" -Y mms
+   tshark -i lo -f "tcp port 102" -Y mms
    ```
 3. In the HMI, select `plc1_brk`, press SELECT, then CLOSE. In the capture you will
    see the MMS Write to `plc1_brk_ctl$SBO` then `plc1_brk_ctl$Command`, the gateway

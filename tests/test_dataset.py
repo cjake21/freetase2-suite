@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.join(ROOT, "suite"))
 
 import dataset as ds  # noqa: E402
 
-SERVER_PORT = 10502
+SERVER_PORT = 102
 
 
 # ---- tiny synthetic pcap builder ------------------------------------------ #

@@ -102,7 +102,7 @@ The federation is described in `config/federation.json`:
 ```json
 {
   "centers": {
-    "A": { "host": "127.0.0.1", "port": 10502, "config": "config/scada.json" },
+    "A": { "host": "127.0.0.1", "port": 102, "config": "config/scada.json" },
     "B": { "host": "127.0.0.1", "port": 10602, "config": "config/scada_b.json" }
   },
   "ties": [

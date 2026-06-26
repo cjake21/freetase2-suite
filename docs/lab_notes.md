@@ -76,7 +76,7 @@ that already works. Option B stays open for later if write latency ever matters.
   auto-discovery. Devices and register maps are always declared explicitly.
   Direction note: the Modbus reader is a master/poller that connects OUT to each
   PLC, so you point the gateway AT the PLCs, not the PLCs at the gateway.
-- `scripts/60_run_ingest.sh`: starts the server on a loopback high port (with the
+- `scripts/60_run_ingest.sh`: starts the server on loopback port 102 (with the
   injection-hold set) and runs the gateway in front of it.
 
 ## How to try it without a PLC

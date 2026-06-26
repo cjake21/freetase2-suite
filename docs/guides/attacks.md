@@ -31,7 +31,7 @@ Scenarios: `ukraine2015-attack`, `industroyer-attack`, `stealthy-attack`, and
 ## How to read TASE.2 traffic
 
 TASE.2 / ICCP is MMS (ISO 9506) carried over TPKT, COTP, the OSI session and
-presentation layers, and ACSE, on TCP (port 102, or 10502 in the demos). To read an
+presentation layers, and ACSE, on TCP port 102. To read an
 attack you watch a small number of MMS operations, and the object names that appear
 as plain ASCII inside the PDUs tell you what is being touched. See
 {doc}`tase2-on-the-wire` for the framing in detail. The operations that matter:

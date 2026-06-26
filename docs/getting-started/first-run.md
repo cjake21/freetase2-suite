@@ -41,7 +41,7 @@ The launcher validates the configuration and prints its startup, for example:
 [scada] profile: INSECURE (plaintext, open command path) - for ranges/attack demos
 [scada] starting Modbus slave simulator on :1502
 [scada] starting DNP3 outstation simulator on :20000
-[scada] starting TASE.2 server on 127.0.0.1:10502 (no sim)
+[scada] starting TASE.2 server on 127.0.0.1:102 (no sim)
 [scada] starting ingestion gateway (tags: tags.demo.json)
 [scada] starting HMI bridge on http://127.0.0.1:8800
 ```

@@ -29,7 +29,7 @@ RUN ./scripts/10_build.sh
 ENV HTTP_HOST=0.0.0.0
 EXPOSE 8080
 EXPOSE 8800
-EXPOSE 10502
+EXPOSE 102
 
 # The container is the app: the control console, reachable on the published port.
 CMD ["python3", "suite/launcher.py", "--no-browser", "--host", "0.0.0.0"]

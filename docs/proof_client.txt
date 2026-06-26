@@ -1,4 +1,4 @@
-[client] connecting to 127.0.0.1:10502 (domain TestDomain)
+[client] connecting to 127.0.0.1:102 (domain TestDomain)
 [client] associated.
 [client] Block 1: bilateral-table negotiation
   read TASE2_Version          = {2000,8}

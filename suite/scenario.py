@@ -718,7 +718,7 @@ def main():
     r.add_argument("--config", default=os.environ.get("SCADA_CONFIG", DEFAULT_CONFIG))
     r.add_argument("--server-host", default=os.environ.get("TASE2_HOST", "127.0.0.1"))
     r.add_argument("--server-port", type=int,
-                   default=int(os.environ.get("TASE2_PORT", "10502")))
+                   default=int(os.environ.get("TASE2_PORT", "102")))
     r.add_argument("--out", default=os.environ.get("SCENARIO_OUT"),
                    help="write the ground-truth timeline here (JSON lines)")
     r.set_defaults(func=cmd_run)

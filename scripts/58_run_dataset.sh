@@ -22,7 +22,7 @@ set -Eeuo pipefail
 
 PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TASE2_HOST="${TASE2_HOST:-127.0.0.1}"
-TASE2_PORT="${TASE2_PORT:-10502}"
+TASE2_PORT="${TASE2_PORT:-102}"
 HTTP_PORT="${HTTP_PORT:-8800}"
 INTEGRITY="${INTEGRITY:-10}"
 INJECT_HOLD="${INJECT_HOLD:-30}"
@@ -56,6 +56,7 @@ python3 "$PROJECT/scripts/gen_server_points.py" "$CONFIG" > "$POINTS"
 PIDS=()
 CAP_PID=""
 cleanup() {
+  sudo pkill -x tase2_server 2>/dev/null || true
   [[ -n "$CAP_PID" ]] && { $CAP_CMD -h >/dev/null 2>&1 || true; kill "$CAP_PID" 2>/dev/null || true; }
   for p in "${PIDS[@]:-}"; do kill "$p" 2>/dev/null || true; done
   rm -f "$POINTS"
@@ -64,7 +65,7 @@ trap cleanup EXIT INT TERM
 
 # 1. server: configured points, no simulation
 echo "[dataset] starting TASE.2 server on $TASE2_HOST:$TASE2_PORT (no sim)"
-"$SRV" -i "$TASE2_HOST" -p "$TASE2_PORT" -d "$DOMAIN" -t "$INTEGRITY" -o "$INJECT_HOLD" -n -P "$POINTS" &
+sudo "$SRV" -i "$TASE2_HOST" -p "$TASE2_PORT" -d "$DOMAIN" -t "$INTEGRITY" -o "$INJECT_HOLD" -n -P "$POINTS" &
 PIDS+=("$!"); sleep 1
 
 # 2. HMI bridge: subscribes, so Block 2 reports are also on the wire

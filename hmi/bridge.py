@@ -462,7 +462,7 @@ def main():
     ap.add_argument("--config", default=os.environ.get("SCADA_CONFIG", DEFAULT_CONFIG),
                     help="scada.json point/station model")
     ap.add_argument("--server-host", default=os.environ.get("TASE2_HOST", "127.0.0.1"))
-    ap.add_argument("--server-port", type=int, default=int(os.environ.get("TASE2_PORT", "10502")))
+    ap.add_argument("--server-port", type=int, default=int(os.environ.get("TASE2_PORT", "102")))
     ap.add_argument("--http-host", default=os.environ.get("HTTP_HOST", "127.0.0.1"))
     ap.add_argument("--http-port", type=int, default=8800)
     args = ap.parse_args()

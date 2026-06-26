@@ -19,7 +19,7 @@ mental model and the golden rules first. They will save you the most time.
 ## What this plugin is
 
 The plugin gives Caldera a set of abilities that speak MMS / TASE.2 to a server on
-TCP port 102 (or 10502 in the demos). Each ability is one command line that runs a
+TCP port 102. Each ability is one command line that runs a
 small payload on the Caldera agent. There are two payloads:
 
 - `tase2_actions` is the everyday tool: recon, read, write, control, inject,
@@ -91,9 +91,10 @@ which recon capability supplies the names it needs.
 Read these once. Most failures testers report are one of these eight things.
 ```
 
-1. **Set the port.** The `tase2.server.port` fact defaults to `102`. The loopback
-   demos run on `10502`. If you leave it at `102` against a `10502` server you get
-   `connect failed (connection-rejected)`. Set the port to match your target.
+1. **Set the port to match the target.** The `tase2.server.port` fact defaults to
+   `102`, the standard TASE.2 / ICCP port. If your target listens on a different
+   port, set this fact to match it, or you get `connect failed
+   (connection-rejected)`.
 
 2. **No backslash in object names inside Caldera facts.** Write the object as
    `plc1_avr_ctl$Command`, not `plc1_avr_ctl\$Command`. The ability already wraps
@@ -140,7 +141,7 @@ it. These facts are shared by almost every ability.
 | Fact | What it is | How to fill it |
 |------|------------|----------------|
 | `tase2.server.ip` | target server address | the IP of the TASE.2 server, for example `10.20.0.10` or `127.0.0.1` |
-| `tase2.server.port` | TCP port | `102` for a real server, `10502` for the loopback demos. Set this to match your target. |
+| `tase2.server.port` | TCP port | `102`, the standard TASE.2 port. Set it to match your target if it uses a different port. |
 | `tase2.idspec` | association identity | `none` for a permissive server. For a gated server, a single string `key=value;key=value;...` using keys `remote_aptitle`, `remote_ae`, `local_aptitle`, `local_ae`, `psel`, `ssel`, `tsel`. |
 | `tase2.domain.name` | the ICC domain | the domain the objects live in, for example `TestDomain`. You confirm this with recon. |
 
@@ -642,7 +643,7 @@ target from the recon you did in Phase 1.
 
 To set the AVR setpoint on the field demo, the exact sequence is:
 
-1. Association Probe on `127.0.0.1:10502`, identity `none`. Confirms the link.
+1. Association Probe on `127.0.0.1:102`, identity `none`. Confirms the link.
 2. Fingerprint Endpoint. Shows `plc1_avr_ctl` exists and the server supports
    block5.
 3. Object Type Introspection on `plc1_avr_ctl`. Shows `Command` (FLOAT), `Tag`,
@@ -656,7 +657,7 @@ To set the AVR setpoint on the field demo, the exact sequence is:
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `connect failed (connection-rejected)` right away | wrong port, or wrong identity | set `tase2.server.port` to match the target (`10502` in the demos), then check `tase2.idspec` |
+| `connect failed (connection-rejected)` right away | wrong port, or wrong identity | set `tase2.server.port` to match the target, then check `tase2.idspec` |
 | `connect failed (connection-rejected)` intermittently | the server's association slots are full | re-run the ability, do not run abilities in parallel, or raise the server's max connections |
 | `could not introspect ... for auto type` | a backslash in the object name, or the object does not exist | remove the backslash (use `plc1_avr_ctl$Command`, not `\$`), and confirm the name with Fingerprint |
 | `is a STRUCTURE; write a leaf component` | you targeted the whole object | target a leaf, for example `plc1_avr_ctl$Command` |

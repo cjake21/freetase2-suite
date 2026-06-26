@@ -37,7 +37,7 @@ tcpdump, Wireshark, or the namespace capture scripts) you can label it directly:
 
 ```bash
 python3 suite/dataset.py label capture.pcap groundtruth.jsonl \
-  --out datasets/run1 --server-port 10502 --window 1.0
+  --out datasets/run1 --server-port 102 --window 1.0
 ```
 
 It reads the capture with a small built-in pcap reader, so it depends on no capture

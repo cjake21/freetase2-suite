@@ -38,7 +38,7 @@ python3 "$PROJECT/scripts/gen_server_points.py" "$A_CONFIG" > "$PTSA"
 python3 "$PROJECT/scripts/gen_server_points.py" "$B_CONFIG" > "$PTSB"
 
 PIDS=()
-cleanup() { for p in "${PIDS[@]:-}"; do kill "$p" 2>/dev/null || true; done; rm -f "$PTSA" "$PTSB"; }
+cleanup() { sudo pkill -x tase2_server 2>/dev/null || true; for p in "${PIDS[@]:-}"; do kill "$p" 2>/dev/null || true; done; rm -f "$PTSA" "$PTSB"; }
 trap cleanup EXIT INT TERM
 
 # Optional bilateral table on the source center (what A is willing to share).
@@ -52,7 +52,7 @@ fi
 
 # 1. CC-A: its own server with live data (simulation on)
 echo "[fed] starting CC-A server on $A_HOST:$A_PORT (domain $A_DOMAIN, live)"
-"$SRV" -i "$A_HOST" -p "$A_PORT" -d "$A_DOMAIN" -t "$INTEGRITY" -P "$PTSA" "${A_SEC[@]}" & PIDS+=("$!")
+sudo "$SRV" -i "$A_HOST" -p "$A_PORT" -d "$A_DOMAIN" -t "$INTEGRITY" -P "$PTSA" "${A_SEC[@]}" & PIDS+=("$!")
 
 # 2. CC-B: its own server, no local source (values arrive over the tie)
 echo "[fed] starting CC-B server on $B_HOST:$B_PORT (domain $B_DOMAIN, no sim)"

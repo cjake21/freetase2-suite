@@ -11,7 +11,7 @@
       "security": "insecure",
       "config": "config/scada.json",
       "http_port": 8800,
-      "tase2_port": 10502
+      "tase2_port": 102
     },
 
     "field-demo": {
@@ -25,7 +25,7 @@
       "tags": "ingest/tags.demo.json",
       "sims": ["modbus", "dnp3"],
       "http_port": 8800,
-      "tase2_port": 10502
+      "tase2_port": 102
     },
 
     "physics-demo": {
@@ -38,7 +38,7 @@
       "config": "config/scada.json",
       "grid": "config/grid.json",
       "http_port": 8800,
-      "tase2_port": 10502
+      "tase2_port": 102
     },
 
     "scenario-demo": {
@@ -51,7 +51,7 @@
       "config": "config/scada.json",
       "scenario": "scenarios/fdi_tieline.json",
       "http_port": 8800,
-      "tase2_port": 10502
+      "tase2_port": 102
     },
 
     "cascade-demo": {
@@ -64,7 +64,7 @@
       "config": "config/scada.json",
       "scenario": "scenarios/fdi_cascade.json",
       "http_port": 8800,
-      "tase2_port": 10502
+      "tase2_port": 102
     },
 
     "ukraine2015-attack": {
@@ -73,7 +73,7 @@
       "use_when": "The 2015 Ukraine blackout: recon, coordinated breaker opens, operators locked out, cascade.",
       "mode": "scenario", "protocol": "ICCP/MMS", "security": "insecure",
       "config": "config/scada.json", "scenario": "scenarios/ukraine2015_blackout.json",
-      "http_port": 8800, "tase2_port": 10502
+      "http_port": 8800, "tase2_port": 102
     },
 
     "industroyer-attack": {
@@ -82,7 +82,7 @@
       "use_when": "The 2016 Industroyer breaker sweep: automated discovery, sweep, and a toggling flood.",
       "mode": "scenario", "protocol": "ICCP/MMS", "security": "insecure",
       "config": "config/scada.json", "scenario": "scenarios/industroyer_sweep.json",
-      "http_port": 8800, "tase2_port": 10502
+      "http_port": 8800, "tase2_port": 102
     },
 
     "stealthy-attack": {
@@ -91,7 +91,7 @@
       "use_when": "Stealthy false data: modify a setpoint, then mask the result. Hard to detect.",
       "mode": "scenario", "protocol": "ICCP/MMS", "security": "insecure",
       "config": "config/scada.json", "scenario": "scenarios/stealthy_false_data.json",
-      "http_port": 8800, "tase2_port": 10502
+      "http_port": 8800, "tase2_port": 102
     },
 
     "recon-attack": {
@@ -100,7 +100,7 @@
       "use_when": "Pure reconnaissance: model and point reads, no commands. Catch it before impact.",
       "mode": "scenario", "protocol": "ICCP/MMS", "security": "insecure",
       "config": "config/scada.json", "scenario": "scenarios/recon_collection.json",
-      "http_port": 8800, "tase2_port": 10502
+      "http_port": 8800, "tase2_port": 102
     },
 
     "field-hardened": {
@@ -114,7 +114,7 @@
       "tags": "ingest/tags.demo.json",
       "sims": ["modbus", "dnp3"],
       "http_port": 8800,
-      "tase2_port": 10502
+      "tase2_port": 102
     },
 
     "field-federated": {
@@ -129,7 +129,7 @@
       "sims": ["modbus", "dnp3"],
       "blt": "config/blt.conf",
       "http_port": 8800,
-      "tase2_port": 10502
+      "tase2_port": 102
     },
 
     "federation-demo": {
@@ -155,7 +155,7 @@
       "config": "config/scada.json",
       "tags": "ingest/tags.json",
       "http_port": 8800,
-      "tase2_port": 10502
+      "tase2_port": 102
     }
   }
 }

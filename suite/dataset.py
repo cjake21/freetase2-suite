@@ -44,7 +44,7 @@ import sys
 
 # The TASE.2 server's default port; used to decide packet direction
 # (client-to-server vs server-to-client).
-DEFAULT_SERVER_PORT = 10502
+DEFAULT_SERVER_PORT = 102
 
 # Human-readable names for the MITRE ATT&CK for ICS technique tags the scenarios
 # use, so the manifest and scorecard read nicely. These are the classic ATT&CK for

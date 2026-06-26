@@ -214,7 +214,7 @@ const $=id=>document.getElementById(id);
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 async function api(p,b){const o=b?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}:{};return (await fetch(p,o)).json();}
 function scriptFor(d){return ({simulation:"scripts/50_run_hmi.sh",ingestion:"scripts/55_run_scada.sh",scenario:"scripts/56_run_scenario.sh",physics:"scripts/57_run_physics.sh",federation:"scripts/61_run_federation.sh"})[d.mode]||"scripts/55_run_scada.sh";}
-function portsFor(d){const p=["TASE.2/"+(d.tase2_port||10502),"HMI/"+(d.http_port||8800)];if((d.sims||[]).includes("modbus"))p.push("MODBUS/1502");if((d.sims||[]).includes("dnp3"))p.push("DNP3/20000");return p;}
+function portsFor(d){const p=["TASE.2/"+(d.tase2_port||102),"HMI/"+(d.http_port||8800)];if((d.sims||[]).includes("modbus"))p.push("MODBUS/1502");if((d.sims||[]).includes("dnp3"))p.push("DNP3/20000");return p;}
 function slotState(name){
   if(status.running&&status.name===name) return "run";
   const pc=prechecks[name];
@@ -320,7 +320,7 @@ function renderBay(){
   h+=`<div class="procchain data">`
     +`<div class="pc-root">tase2ctl.py run ${esc(sel)}</div>`
     +`<div><span class="pc-b">&#9500;&#9472;</span> ${esc(scriptFor(d))}</div>`
-    +`<div><span class="pc-b">&#9500;&#9472;</span> TASE.2 server <span class="pc-port">:${esc(d.tase2_port||10502)}</span></div>`
+    +`<div><span class="pc-b">&#9500;&#9472;</span> TASE.2 server <span class="pc-port">:${esc(d.tase2_port||102)}</span></div>`
     +`<div><span class="pc-b">${hasSims?"&#9500;&#9472;":"&#9492;&#9472;"}</span> HMI bridge <span class="pc-port">:${esc(d.http_port||8800)}</span></div>`
     +(hasSims?`<div><span class="pc-b">&#9492;&#9472;</span> sims <span class="pc-port">${(d.sims.includes("modbus")?":1502 ":"")+(d.sims.includes("dnp3")?":20000":"")}</span></div>`:"")
     +`</div>`;

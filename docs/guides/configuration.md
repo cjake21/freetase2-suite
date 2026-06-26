@@ -85,7 +85,7 @@ The `insecure` profile is for closed ranges and attack demonstrations only. Use
 |----------|---------|---------|
 | `SCADA_CONFIG` | `config/scada.json` | point model path |
 | `TAGS` | demo tags | tag database path |
-| `TASE2_PORT` | `10502` | server TCP port |
+| `TASE2_PORT` | `102` | server TCP port |
 | `HTTP_PORT` | `8800` | HMI port |
 | `HTTP_HOST` | `127.0.0.1` | HMI bind address |
 | `POLL_SEC` | `1` | poll period |

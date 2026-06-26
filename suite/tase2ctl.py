@@ -75,7 +75,7 @@ def build_launch(name):
     env = dict(os.environ)
     env["SCADA_CONFIG"] = os.path.join(ROOT, d["config"])
     env["HTTP_PORT"] = str(d.get("http_port", 8800))
-    env["TASE2_PORT"] = str(d.get("tase2_port", 10502))
+    env["TASE2_PORT"] = str(d.get("tase2_port", 102))
     env["PROFILE"] = d.get("security", "insecure")
     if d.get("tags"):
         env["TAGS"] = os.path.join(ROOT, d["tags"])

@@ -679,7 +679,7 @@ def main():
                     help="tag database (JSON) mapping ICCP points to field devices")
     ap.add_argument("--server-host", default=os.environ.get("TASE2_HOST", "127.0.0.1"))
     ap.add_argument("--server-port", type=int,
-                    default=int(os.environ.get("TASE2_PORT", "10502")))
+                    default=int(os.environ.get("TASE2_PORT", "102")))
     ap.add_argument("--domain", default=os.environ.get("TASE2_DOMAIN", "TestDomain"))
     ap.add_argument("--poll-sec", type=float, default=2.0,
                     help="how often to poll every tag")

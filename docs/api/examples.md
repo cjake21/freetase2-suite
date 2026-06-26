@@ -8,7 +8,7 @@ curl -s http://127.0.0.1:8800/api/state | python3 -m json.tool
 
 ```json
 {
-  "server": { "host": "127.0.0.1", "port": 10502, "domain": "TestDomain" },
+  "server": { "host": "127.0.0.1", "port": 102, "domain": "TestDomain" },
   "online": { "A": true, "B": true },
   "report": { "last_report_time": "20260622T120000Z", "count": 14, "cond": 2 },
   "stations": [

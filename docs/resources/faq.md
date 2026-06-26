@@ -19,7 +19,7 @@ Modbus TCP and DNP3 over TCP today. Others plug in as driver modules. See
 
 **Can a real ICCP client talk to it?**
 Yes. The interop test drives the server from an independent MMS stack. Point your
-client at the server port (default 10502) and the configured domain.
+client at the server port (default 102) and the configured domain.
 
 **How do I send a command to a device?**
 From the HMI or `POST /api/control`. For select-before-operate points, select first.

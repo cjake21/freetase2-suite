@@ -169,7 +169,7 @@ valid.
   "config": "config/scada.json",
   "tags": "ingest/tags.json",
   "http_port": 8800,
-  "tase2_port": 10502
+  "tase2_port": 102
 }
 ```
 

@@ -129,6 +129,11 @@ Three lenses make the rest of this guide concrete:
   the attack traffic on its own association on purpose, so you can practise keying on
   exactly that.
 
+To pin each step in this chain to the exact packet, the ground-truth timeline records
+every event with a microsecond `utc` timestamp that sits on its PDU. Match it against
+Wireshark's UTC clock as described in
+{doc}`scenarios`, under "Correlating an event with the exact packet".
+
 ## The scenarios
 
 ### ukraine2015-attack (`scenarios/ukraine2015_blackout.json`)

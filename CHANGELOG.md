@@ -6,6 +6,12 @@ Keep a Changelog, and the project aims to follow semantic versioning.
 ## [Unreleased]
 
 ### Added
+- Packet-level ground-truth timestamps: every event in the ground-truth timeline now
+  records its time at microsecond resolution (`wall` to six decimals) plus a UTC
+  string (`utc`), captured the moment the event's PDU goes on the wire, so each
+  attack step in the chain lines up with the exact packet in Wireshark. The scenario
+  guide explains the correlation workflow (set Wireshark to the UTC clock, filter on
+  the object name). The console log shows the absolute microsecond time too.
 - Run any attack on either of two environments: scenarios now reference their points
   by role (the tie breaker, the tie flow, a bus voltage, a feeder breaker, the
   communications station) instead of by a fixed point name, and an environment

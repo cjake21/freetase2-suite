@@ -32,6 +32,7 @@ self-contained module. Standard library only. Python 3.7+.
 """
 
 import argparse
+import datetime
 import json
 import os
 import random
@@ -326,8 +327,17 @@ class Runner:
         labelled timeline the dataset and detection-scoring tools consume."""
         if label is None:
             label = "malicious" if do in MALICIOUS_BY_DEFAULT else "benign"
-        t = round(time.time() - self.start, 3) if self.start else 0.0
-        rec = {"t": t, "wall": round(time.time(), 3), "do": do, "label": label}
+        # Capture the instant once, right after the action's PDU went on the wire, at
+        # microsecond resolution so it lines up with a packet in Wireshark (which
+        # shows six decimals). 'wall' is the epoch second the labeller joins on; 'utc'
+        # is the same instant as a UTC string you can match against Wireshark's "UTC
+        # date and time of day" column by eye.
+        now = time.time()
+        dt = datetime.datetime.fromtimestamp(now, datetime.timezone.utc)
+        t = round(now - self.start, 6) if self.start else 0.0
+        rec = {"t": t, "wall": round(now, 6),
+               "utc": dt.strftime("%Y-%m-%dT%H:%M:%S.%f") + "Z",
+               "do": do, "label": label}
         if point is not None:
             rec["point"] = point
             rec["station"] = self.model.station_of.get(point)
@@ -342,7 +352,7 @@ class Runner:
             self.out.write(json.dumps(rec) + "\n")
             self.out.flush()
         flag = "ATTACK" if label == "malicious" else "  --  "
-        log("[%6.1fs] %s %-13s %s" % (t, flag, do,
+        log("[%9.3fs %s] %s %-13s %s" % (t, dt.strftime("%H:%M:%S.%f"), flag, do,
             note or (("%s=%s" % (point, value)) if point is not None else "")))
 
     # ---- writing points --------------------------------------------------- #
@@ -740,9 +750,13 @@ def cmd_run(args):
 
     out = open(args.out, "w") if args.out else None
     if out:
+        _h_now = time.time()
         out.write(json.dumps({"ground_truth": scenario.get("name", "scenario"),
                               "seed": scenario.get("seed", 0),
-                              "started": round(time.time(), 3)}) + "\n")
+                              "started": round(_h_now, 6),
+                              "started_utc": datetime.datetime.fromtimestamp(
+                                  _h_now, datetime.timezone.utc).strftime(
+                                  "%Y-%m-%dT%H:%M:%S.%f") + "Z"}) + "\n")
         out.flush()
         log("[scenario] ground truth -> %s" % args.out)
 

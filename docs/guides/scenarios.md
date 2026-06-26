@@ -186,12 +186,38 @@ event as it happens. The first line is a header with the scenario name and seed,
 and each event line looks like this:
 
 ```json
-{ "t": 5.0, "wall": 1782334084.7, "do": "inject", "label": "malicious",
+{ "t": 5.012437, "wall": 1782334084.712983,
+  "utc": "2026-06-26T22:08:04.712983Z", "do": "inject", "label": "malicious",
   "point": "plc1_mw", "station": "plc1", "value": 19.5, "quality": "valid",
   "technique": "T0856", "note": "spoofed tie-line flow over the hi limit" }
 ```
 
-Because the engine knows precisely what it injected and exactly when, this file is a
+Each event carries three times, all at microsecond resolution so they line up with a
+packet in a capture (Wireshark shows six decimals after the second):
+
+- **`t`** is seconds since the run started, the relative clock the console log shows.
+- **`wall`** is the absolute epoch time the event was recorded, the field the dataset
+  labeller joins packets on.
+- **`utc`** is that same instant as a UTC string, so you can match it by eye against
+  Wireshark.
+
+### Correlating an event with the exact packet
+
+Each event is recorded the moment its TASE.2 PDU goes on the wire, so its time sits
+on the corresponding packet. To find that packet in Wireshark:
+
+1. Set the time display to the matching absolute clock:
+   **View, Time Display Format, UTC Date and Time of Day**, and turn the precision up
+   to **Microseconds** (Wireshark defaults to whatever the capture stored, which is
+   microseconds for libpcap). Now the packet list reads in the same `utc` clock the
+   ground truth uses.
+2. Take the event's `utc` (or `wall`), and jump to that time. A capture filter on the
+   object name makes it unambiguous, for example
+   `mms && frame contains "plc1_brk_ctl"` for a breaker command, or
+   `mms && frame contains "plc1_mw"` for a tie-flow injection. The packet at or just
+   before the event time, carrying that object name, is the one.
+
+Because the engine knows precisely what it did and exactly when, this file is a
 perfect label track. Capture the network traffic at the same time (see
 {doc}`results` and the capture scripts) and you have a packet capture
 paired with ground truth: every packet window is known benign or malicious, tagged

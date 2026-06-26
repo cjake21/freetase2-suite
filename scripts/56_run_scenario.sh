@@ -13,7 +13,7 @@ set -Eeuo pipefail
 # of operations, attacks, and faults. Then open http://127.0.0.1:8800.
 #
 # Set SCENARIO to the scenario file (default scenarios/fdi_tieline.json) and
-# SCENARIO_OUT to capture the ground-truth timeline (default a temp file). No sudo.
+# SCENARIO_OUT to capture the ground-truth timeline (default a temp file). Needs sudo to bind port 102.
 
 PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TASE2_HOST="${TASE2_HOST:-127.0.0.1}"

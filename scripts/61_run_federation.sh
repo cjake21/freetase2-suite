@@ -10,7 +10,7 @@ set -Eeuo pipefail
 # A and writes the agreed tie points into B over real ICCP, so B's HMI shows A's
 # tie-line data without measuring it locally. Then open http://127.0.0.1:8800 to see
 # CC-B's intertie view. What A shares is its bilateral agreement; set BLT to a table
-# on A to enforce it. No sudo.
+# on A to enforce it. Needs sudo to bind port 102.
 
 PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FED="${FEDERATION:-$PROJECT/config/federation.json}"

@@ -16,7 +16,7 @@ set -Eeuo pipefail
 # By default it uses ingest/tags.demo.json, the universal multi-protocol demo
 # (Modbus + DNP3). Set MODBUS_SIM=1 and/or DNP3_SIM=1 to start the bundled bench
 # simulators (the control plane does this from a deployment's "sims" list). Point
-# TAGS at your own tag database, with the sims off, for a real testbed. No sudo.
+# TAGS at your own tag database, with the sims off, for a real testbed. Needs sudo to bind port 102.
 
 PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TASE2_HOST="${TASE2_HOST:-127.0.0.1}"

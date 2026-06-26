@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 # Run the SCADA HMI on loopback over SIMULATED values (no ingestion gateway),
-# then open http://127.0.0.1:8800. No sudo needed. This is the quick way to see
+# then open http://127.0.0.1:8800. Needs sudo to bind port 102. This is the quick way to see
 # the station-grid HMI without wiring any PLCs: the server publishes the point
 # model from config/scada.json and drives it with its internal simulation, so
 # every station reads ONLINE with moving values.

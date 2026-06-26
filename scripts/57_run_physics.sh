@@ -13,7 +13,7 @@ set -Eeuo pipefail
 # in config/grid.json each tick, publishes line flows and bus quantities to the
 # points, and reads breaker controls so a breaker open feeds back into the model.
 # Then open http://127.0.0.1:8800 and try opening plc1_brk (the main tie) to watch
-# the cascade. Set GRID to use a different grid model. No sudo.
+# the cascade. Set GRID to use a different grid model. Needs sudo to bind port 102.
 
 PROJECT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TASE2_HOST="${TASE2_HOST:-127.0.0.1}"

@@ -461,14 +461,21 @@ exist on the agent at the paths you give. The plaintext ability works on any bui
 | `tase2.ctl.object` | the control object base name only, for example `plc1_avr_ctl` (no `$`, no leaf, no backslash). The ability adds the leaves. | Fingerprint (object names) |
 | `tase2.ctl.kind` | `real` for a FLOAT operate, `discrete` for an INTEGER operate, or `auto` | Object Type Introspection (the operate leaf type) |
 | `tase2.ctl.value` | the setpoint or command, for example `150` | you choose it |
-| `tase2.comp.select` | the select leaf name, normally `Tag` | Object Type Introspection |
+| `tase2.comp.select` | the select leaf name, normally `Tag`; a FreeTASE2 SBO breaker uses `SBO` | Object Type Introspection |
 | `tase2.comp.operate` | the operate leaf name, normally `Command` | Object Type Introspection |
 | `tase2.comp.status` | the status leaf name, normally `Status` | Object Type Introspection |
+| `tase2.ctl.selflags` | empty for a string-tag select; `--sbo-int` for an integer SBO-register server (the suite breakers); `--direct` for a direct-operate control | the gotcha below |
 
 - **Output:** `tase2.ctl.object`, `tase2.ctl.value`, `tase2.ctl.status`.
 - **Gotcha:** the object fact is the base name only. If you put a leaf here (for
   example `plc1_avr_ctl$Command`) it will not work, because the ability appends the
   leaves itself. Put only `plc1_avr_ctl`.
+- **Gotcha (select style):** the suite's breakers arm select-before-operate by an
+  integer write of 1 to the `SBO` register, not a string tag. If the operate is
+  refused with `access-denied` right after a select that looked fine, set
+  `tase2.comp.select` to `SBO` and `tase2.ctl.selflags` to `--sbo-int`. See
+  {ref}`the select styles below <select-styles>` and the
+  {doc}`blackout playbook <caldera-blackout>`.
 
 #### Write Arbitrary Object
 
@@ -653,11 +660,59 @@ To set the AVR setpoint on the field demo, the exact sequence is:
    `tase2.ctl.value = 150`, components left at `Tag` / `Command` / `Status`.
 6. Read Arbitrary Object on `plc1_avr_ctl` again to confirm `Command` is now 150.
 
+(select-styles)=
+## Connection robustness and control flexibility
+
+The payload is built to work against unfamiliar gear over imperfect links, not just
+the loopback POC. These options apply to every ability (pass them as flags by hand,
+or wire them to a fact in an ability you copy).
+
+### Slow or flaky links
+
+A real inter-control-center link is slower and less reliable than loopback. Tune the
+connection so an ability does not fail on the first dropped packet:
+
+| Flag | Default | What it does |
+|------|---------|--------------|
+| `--connect-timeout <ms>` | library default | how long to wait for the association to come up |
+| `--request-timeout <ms>` | library default | how long to wait for each read or write |
+| `--timeout <ms>` | | set both at once |
+| `--retries <n>` | `0` | extra connect attempts after the first |
+| `--retry-delay <ms>` | `1000` | wait between attempts |
+
+For example, three attempts over a slow WAN with a generous timeout:
+
+```bash
+./tase2_actions discover 10.20.0.10 102 WESTERN_AREA \
+    --connect-timeout 5000 --retries 2 --retry-delay 2000 --id-spec none
+```
+
+The same five flags are on `tase2_fuzz` too.
+
+### Select-before-operate styles
+
+Servers arm the Block 5 select differently. The plugin can select three ways:
+
+| Style | Flag | Writes | Use when |
+|-------|------|--------|----------|
+| string tag | `--select-type tag` (default) | a string to the select component (`$Tag`) | the server uses an operator-tag select |
+| integer SBO | `--select-type int` or `--sbo-int` | an integer (default 1) to the SBO register | the server arms by an SBO register, **like the suite breakers** |
+| direct | `--select-type none`, `--direct`, or `--no-select` | nothing; operate only | the control is direct-operate, no interlock |
+
+The select value (`--select-val <v>`, integer) and the string tag (`--tag <s>`) are
+both overridable, and the component names (`--select-comp`, `--operate-comp`,
+`--status-comp`, `--value-comp`) adapt to any vendor's leaf names. The
+{doc}`blackout playbook <caldera-blackout>` is the worked example: the suite breakers
+need `--select-comp SBO --sbo-int`, and getting that wrong is exactly the
+`access-denied`-after-select symptom in the troubleshooting table.
+
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | `connect failed (connection-rejected)` right away | wrong port, or wrong identity | set `tase2.server.port` to match the target, then check `tase2.idspec` |
+| operate `access-denied` right after a clean select | the server arms select by an integer SBO register, not a string tag | set `tase2.comp.select` to `SBO` and `tase2.ctl.selflags` to `--sbo-int` |
+| connect times out on a slow or distant link | default timeout too short, or a transient drop | raise `--connect-timeout` and add `--retries` |
 | `connect failed (connection-rejected)` intermittently | the server's association slots are full | re-run the ability, do not run abilities in parallel, or raise the server's max connections |
 | `could not introspect ... for auto type` | a backslash in the object name, or the object does not exist | remove the backslash (use `plc1_avr_ctl$Command`, not `\$`), and confirm the name with Fingerprint |
 | `is a STRUCTURE; write a leaf component` | you targeted the whole object | target a leaf, for example `plc1_avr_ctl$Command` |
